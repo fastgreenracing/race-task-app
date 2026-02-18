@@ -60,6 +60,7 @@ def show_tasks():
     
     for cat in current_categories:
         st.subheader(f"📍 {cat}")
+        # Re-fetch tasks inside the fragment to ensure we have the absolute latest DB state
         tasks = db.collection("race_tasks").where("category", "==", cat).stream()
         
         has_tasks = False
@@ -69,8 +70,10 @@ def show_tasks():
             task_id = task.id
             is_done = td.get("completed", False)
             
-            # Dynamic Colors: Red for pending, Green for done
-            bg_color, border_color = ("#dcfce7", "#22c55e") if is_done else ("#fee2e2", "#ef4444")
+            # --- STABILIZED COLOR LOGIC ---
+            # We use hex codes directly to prevent browser CSS "ghosting"
+            bg_color = "#dcfce7" if is_done else "#fee2e2"
+            border_color = "#22c55e" if is_done else "#ef4444"
             
             st.markdown(
                 f"""<div style="background-color: {bg_color}; border: 2px solid {border_color}; 
@@ -81,9 +84,9 @@ def show_tasks():
             cols = st.columns([1, 7, 2]) if is_admin else st.columns([1, 9])
 
             with cols[0]:
-                # Lock: Disable if done AND user is not admin
                 is_disabled = is_done and not is_admin
-                check_val = st.checkbox("", value=is_done, key=f"check_{task_id}", 
+                # Use a specific key for the admin checkbox to prevent interaction loops
+                check_val = st.checkbox("", value=is_done, key=f"check_{task_id}_{is_admin}", 
                                         disabled=is_disabled, label_visibility="collapsed")
                 
                 if check_val != is_done:
@@ -93,11 +96,9 @@ def show_tasks():
             with cols[1]:
                 st.markdown(f"**{'✅' if is_done else '⏳'} {td['title']}**")
                 
-                # Show Notes to everyone if they exist
                 if td.get("notes"):
                     st.info(f"📝 {td['notes']}")
                 
-                # Admin can edit notes
                 if is_admin:
                     with st.popover("Edit Notes"):
                         new_note = st.text_area("Observations:", value=td.get("notes", ""), key=f"note_in_{task_id}")
