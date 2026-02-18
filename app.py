@@ -37,6 +37,9 @@ def update_task_status(doc_id, new_status):
 def update_note(doc_id, note_text):
     db.collection("race_tasks").document(doc_id).update({"notes": note_text})
 
+def delete_note(doc_id):
+    db.collection("race_tasks").document(doc_id).update({"notes": ""})
+
 def move_task(task_id, category, current_order, direction):
     target_order = current_order + direction
     query = db.collection("race_tasks").where("category", "==", category).where("sort_order", "==", target_order).limit(1).get()
@@ -135,19 +138,23 @@ def show_tasks():
                 if is_admin:
                     with st.popover("Edit Notes"):
                         new_note = st.text_area("Notes:", value=td.get("notes", ""), key=f"note_{task_id}")
-                        if st.button("Save", key=f"btn_note_{task_id}"):
+                        # Action Buttons for notes
+                        n_col1, n_col2 = st.columns(2)
+                        if n_col1.button("Save", key=f"btn_save_{task_id}", use_container_width=True):
                             update_note(task_id, new_note)
+                            st.rerun()
+                        if n_col2.button("🗑️ Delete Note", key=f"btn_del_note_{task_id}", type="secondary", use_container_width=True):
+                            delete_note(task_id)
                             st.rerun()
             
             if is_admin:
                 with cols[3]:
-                    if st.button("Delete", key=f"del_{task_id}", type="secondary", use_container_width=True):
+                    if st.button("Delete Task", key=f"del_{task_id}", type="secondary", use_container_width=True):
                         db.collection("race_tasks").document(task_id).delete()
                         st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
             
-            # TASK DIVIDER: A lesser defining line between tasks
             if index < len(tasks_list) - 1:
                 st.markdown("<hr style='border: 0.5px dashed #bbb; margin-top: 10px; margin-bottom: 10px; width: 90%; margin-left: auto; margin-right: auto;'>", unsafe_allow_html=True)
         
