@@ -20,11 +20,16 @@ def get_categories():
     return ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
 
 def add_task(title, category):
+    # Get current tasks in category to determine the next sort_order
+    existing_tasks = db.collection("race_tasks").where("category", "==", category).get()
+    new_order = len(existing_tasks)
+    
     db.collection("race_tasks").add({
         "title": title, 
         "category": category, 
         "completed": False,
-        "notes": ""
+        "notes": "",
+        "sort_order": new_order  # Initialize sort order
     })
 
 def update_task_status(doc_id, new_status):
@@ -32,6 +37,18 @@ def update_task_status(doc_id, new_status):
 
 def update_note(doc_id, note_text):
     db.collection("race_tasks").document(doc_id).update({"notes": note_text})
+
+def move_task(task_id, category, current_order, direction):
+    """Swaps sort_order with the adjacent task in the specified direction."""
+    target_order = current_order + direction
+    # Find the task currently occupying the target slot
+    query = db.collection("race_tasks").where("category", "==", category).where("sort_order", "==", target_order).limit(1).get()
+    
+    if query:
+        target_doc = query[0]
+        # Swap orders
+        db.collection("race_tasks").document(task_id).update({"sort_order": target_order})
+        db.collection("race_tasks").document(target_doc.id).update({"sort_order": current_order})
 
 # --- 3. SIDEBAR: ACCESS CONTROL ---
 with st.sidebar:
@@ -59,19 +76,19 @@ def show_tasks():
     
     for cat in categories:
         st.subheader(f"📍 {cat}")
-        tasks = db.collection("race_tasks").where("category", "==", cat).stream()
+        # Updated query to sort by sort_order
+        tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
         
-        has_tasks = False
-        for task in tasks:
-            has_tasks = True
+        tasks_list = list(tasks_query)
+        has_tasks = len(tasks_list) > 0
+        
+        for index, task in enumerate(tasks_list):
             td = task.to_dict()
             task_id = task.id
             db_status = td.get("completed", False)
+            current_order = td.get("sort_order", index) # Fallback to index if field missing
             
-            # THE FIX: Dynamic key based on DB status forces a hard re-render 
-            # and kills the red/green flickering.
             unique_key = f"widget_{task_id}_{db_status}_{is_admin}"
-            
             bg_color = "#dcfce7" if db_status else "#fee2e2"
             border_color = "#22c55e" if db_status else "#ef4444"
             
@@ -81,24 +98,34 @@ def show_tasks():
                 unsafe_allow_html=True
             )
             
-            cols = st.columns([1, 7, 2]) if is_admin else st.columns([1, 9])
+            # Adjusted columns to fit movement arrows for admin
+            if is_admin:
+                cols = st.columns([0.8, 0.8, 6.4, 2]) 
+            else:
+                cols = st.columns([1, 9])
 
             with cols[0]:
                 is_disabled = db_status and not is_admin
-                
-                check_val = st.checkbox(
-                    "", 
-                    value=db_status, 
-                    key=unique_key, 
-                    disabled=is_disabled, 
-                    label_visibility="collapsed"
-                )
-                
+                check_val = st.checkbox("", value=db_status, key=unique_key, disabled=is_disabled, label_visibility="collapsed")
                 if check_val != db_status:
                     update_task_status(task_id, check_val)
                     st.rerun()
             
-            with cols[1]:
+            # Movement Arrows (Admin Only)
+            if is_admin:
+                with cols[1]:
+                    up_col, down_col = st.columns(2)
+                    if index > 0:
+                        if up_col.button("▲", key=f"up_{task_id}"):
+                            move_task(task_id, cat, current_order, -1)
+                            st.rerun()
+                    if index < len(tasks_list) - 1:
+                        if down_col.button("▼", key=f"down_{task_id}"):
+                            move_task(task_id, cat, current_order, 1)
+                            st.rerun()
+
+            text_col = cols[2] if is_admin else cols[1]
+            with text_col:
                 st.markdown(f"**{'✅' if db_status else '⏳'} {td['title']}**")
                 if td.get("notes"):
                     st.info(f"📝 {td['notes']}")
@@ -111,9 +138,10 @@ def show_tasks():
                             st.rerun()
             
             if is_admin:
-                with cols[2]:
+                with cols[3]:
                     if st.button("Delete", key=f"del_{task_id}", type="secondary", use_container_width=True):
                         db.collection("race_tasks").document(task_id).delete()
+                        # Optional: Re-index remaining tasks here if needed
                         st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
