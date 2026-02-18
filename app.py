@@ -1,17 +1,66 @@
+That error is happening because the variable categories is being called inside the "fragment" function before the app has a chance to define what get_categories actually is.
+
+To fix this for good, we need to ensure all functions are defined at the very top of the script. I have also added a "Session State Guard" to ensure the Admin view and User view don't fight over the checkbox value.
+
+The Final, Stabilized app.py
+Replace your entire file with this code. It is designed to be the "production-ready" version for your race day.
+
+Python
 import streamlit as st
 from google.cloud import firestore
 import json
 
-# Database Connection (Keep your existing connection code here)
+# 1. Database Connection
 key_dict = json.loads(st.secrets["textkey"])
 db = firestore.Client.from_service_account_info(key_dict)
 
+st.set_page_config(page_title="Race Logistics", page_icon="🏃", layout="wide")
+st.title("🏃 Fast Green Racing: Live Tracker")
+
 # --- ADMIN SETTINGS ---
-ADMIN_PASSWORD = "fastgreen2026"
+ADMIN_PASSWORD = "fastgreen2026" 
 
-# (Include your get_categories, add_task, update_task_status functions here)
+# --- 2. DATA FUNCTIONS (Defined first to prevent errors) ---
+def get_categories():
+    cat_ref = db.collection("settings").document("categories").get()
+    if cat_ref.exists:
+        return cat_ref.to_dict().get("list", ["Transportation", "Course & Traffic", "Vendors", "Finish Line"])
+    return ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
 
-@st.fragment(run_every=5) # Tightened refresh to 5 seconds for race-day speed
+def add_task(title, category):
+    db.collection("race_tasks").add({
+        "title": title, 
+        "category": category, 
+        "completed": False,
+        "notes": ""
+    })
+
+def update_task_status(doc_id, new_status):
+    db.collection("race_tasks").document(doc_id).update({"completed": new_status})
+
+def update_note(doc_id, note_text):
+    db.collection("race_tasks").document(doc_id).update({"notes": note_text})
+
+# --- 3. SIDEBAR: ACCESS CONTROL ---
+with st.sidebar:
+    st.header("🔐 Access Control")
+    pwd = st.text_input("Admin Password", type="password")
+    is_admin = (pwd == ADMIN_PASSWORD)
+    st.session_state.admin_logged_in = is_admin
+
+    if is_admin:
+        st.success("Admin Mode: Active")
+        st.divider()
+        st.subheader("➕ Add New Task")
+        new_title = st.text_input("Task Description")
+        new_cat = st.selectbox("Assign to Category", get_categories())
+        if st.button("Add Task", use_container_width=True):
+            if new_title:
+                add_task(new_title, new_cat)
+                st.rerun()
+
+# --- 4. MAIN UI DISPLAY ---
+@st.fragment(run_every=5)
 def show_tasks():
     is_admin = st.session_state.get('admin_logged_in', False)
     categories = get_categories()
@@ -20,17 +69,14 @@ def show_tasks():
         st.subheader(f"📍 {cat}")
         tasks = db.collection("race_tasks").where("category", "==", cat).stream()
         
+        has_tasks = False
         for task in tasks:
+            has_tasks = True
             td = task.to_dict()
             task_id = task.id
             db_status = td.get("completed", False)
             
-            # --- THE FIX: SYNC STATE ---
-            # This forces the local checkbox to match the database exactly
-            check_key = f"state_{task_id}"
-            st.session_state[check_key] = db_status
-
-            # Dynamic Colors (Solid Hex for stability)
+            # --- COLOR STABILITY ---
             bg_color = "#dcfce7" if db_status else "#fee2e2"
             border_color = "#22c55e" if db_status else "#ef4444"
             
@@ -45,16 +91,15 @@ def show_tasks():
             with cols[0]:
                 is_disabled = db_status and not is_admin
                 
-                # Checkbox now pulls directly from the synced Session State
+                # We use the database status as the ONLY source of truth for the checkbox
                 check_val = st.checkbox(
                     "", 
-                    value=st.session_state[check_key], 
-                    key=f"widget_{task_id}", # Fixed widget key
+                    value=db_status, 
+                    key=f"widget_{task_id}_{is_admin}", # Unique key for admin vs user
                     disabled=is_disabled, 
                     label_visibility="collapsed"
                 )
                 
-                # If the user/admin physically clicks, update the DB
                 if check_val != db_status:
                     update_task_status(task_id, check_val)
                     st.rerun()
@@ -78,5 +123,8 @@ def show_tasks():
                         st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
+        
+        if not has_tasks:
+            st.caption(f"No active tasks in {cat}")
 
 show_tasks()
