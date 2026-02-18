@@ -12,7 +12,7 @@ st.set_page_config(page_title="Race Logistics", page_icon="🏃", layout="wide")
 
 # --- CUSTOM BACKGROUND & THEMING ---
 # Replace this URL with your preferred marathon photo link
-BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?auto=format&fit=crop&w=2070&q=80"
+BACKGROUND_IMAGE_URL = "https://photos.smugmug.com/Mountains-2-Beach-Marathons/2019-Mountains-to-Beach-Marathon-and-Half/M2B-2019-Full-Marathon/M2B-2019-Full-Marathon-The-Start-Mile-6/i-VWkXxgW/4/K89dGgVPwJt2cjM6q2g2NPNPVH396kP9KCr4vX8vM/X2/DHHolmes_190526_DH0784_M2B-X2.jpg"
 
 st.markdown(
     f"""
