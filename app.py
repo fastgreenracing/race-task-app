@@ -1,3 +1,7 @@
+Here is the full, updated app.py code. It includes the 50% opacity background mask, the large font sizes for glanceability, the Category Status Lights on the right, and the full administrative sorting and note-deletion logic.
+
+Full app.py Code
+Python
 import streamlit as st
 from google.cloud import firestore
 import json
@@ -10,27 +14,34 @@ db = firestore.Client.from_service_account_info(key_dict)
 
 st.set_page_config(page_title="Race Logistics", page_icon="🏃", layout="wide")
 
-# --- CSS FOR BACKGROUND IMAGE AND READABILITY ---
+# --- CUSTOM BACKGROUND & THEMING ---
+# Replace this URL with your preferred marathon photo link
+BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?auto=format&fit=crop&w=2070&q=80"
+
 st.markdown(
-    """
+    f"""
     <style>
-    .stApp {
-        background-image: url("https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80");
+    .stApp {{
+        background: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)), 
+                    url("{BACKGROUND_IMAGE_URL}");
         background-attachment: fixed;
         background-size: cover;
-    }
-    /* Main container overlay to protect readability */
-    .main .block-container {
-        background-color: rgba(255, 255, 255, 0.85); 
-        padding: 40px;
-        border-radius: 20px;
-        margin-top: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    /* Style headers to stand out */
-    h1, h2, h3 {
-        color: #1e3a1e !important;
-    }
+        background-position: center;
+    }}
+    /* Main Glassmorphism Container */
+    .main .block-container {{
+        background-color: rgba(255, 255, 255, 0.92); 
+        padding: 3rem;
+        border-radius: 25px;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }}
+    h1 {{
+        color: #000000 !important;
+        font-family: 'Helvetica Neue', sans-serif;
+    }}
     </style>
     """,
     unsafe_allow_html=True
@@ -68,6 +79,14 @@ def set_cat_status(cat_name, status, note=None):
 def update_task_status(doc_id, new_status):
     db.collection("race_tasks").document(doc_id).update({"completed": new_status})
 
+def move_task(task_id, category, current_order, direction):
+    target_order = current_order + direction
+    query = db.collection("race_tasks").where("category", "==", category).where("sort_order", "==", target_order).limit(1).get()
+    if query:
+        target_doc = query[0]
+        db.collection("race_tasks").document(task_id).update({"sort_order": target_order})
+        db.collection("race_tasks").document(target_doc.id).update({"sort_order": current_order})
+
 # --- 3. SIDEBAR: ACCESS CONTROL ---
 with st.sidebar:
     st.header("🔐 Access Control")
@@ -94,7 +113,11 @@ with st.sidebar:
         new_cat = st.selectbox("Assign to Category", cats)
         if st.button("Add Task", use_container_width=True):
             if new_title:
-                db.collection("race_tasks").add({"title": new_title, "category": new_cat, "completed": False, "notes": "", "sort_order": 99})
+                existing = db.collection("race_tasks").where("category", "==", new_cat).get()
+                db.collection("race_tasks").add({
+                    "title": new_title, "category": new_cat, "completed": False, 
+                    "notes": "", "sort_order": len(existing)
+                })
                 st.rerun()
 
 # --- 4. MAIN UI DISPLAY ---
@@ -105,9 +128,11 @@ def show_tasks():
     
     for cat in categories:
         st.markdown("<hr style='border: 2px solid #333; margin-top: 40px; margin-bottom: 20px;'>", unsafe_allow_html=True)
+        
         c_data = get_cat_data(cat)
         light_color = "#22c55e" if c_data.get("completed") else "#ef4444"
         
+        # Header Layout: Large Category + Status Circle on Right
         st.markdown(
             f"""
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
@@ -118,30 +143,64 @@ def show_tasks():
         )
         
         if c_data.get("note"):
-            st.markdown(f"**Status Note:** {c_data['note']} <br> <small>Last Updated: {c_data.get('timestamp', 'N/A')}</small>", unsafe_allow_html=True)
+            st.markdown(f"**Status Note:** {c_data['note']} | <small>Last Updated: {c_data.get('timestamp')}</small>", unsafe_allow_html=True)
+            st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
         
-        tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
-        tasks_list = list(tasks_query)
+        try:
+            tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
+            tasks_list = list(tasks_query)
+        except Exception:
+            st.warning("Database indexing... wait 1 min.")
+            tasks_list = []
         
         for index, task in enumerate(tasks_list):
             td = task.to_dict()
+            task_id = task.id
             db_status = td.get("completed", False)
-            bg_color = "rgba(220, 252, 231, 0.9)" if db_status else "rgba(254, 226, 226, 0.9)"
+            current_order = td.get("sort_order", index)
+            
+            unique_key = f"w_{task_id}_{db_status}_{is_admin}"
+            bg_color = "rgba(220, 252, 231, 0.95)" if db_status else "rgba(254, 226, 226, 0.95)"
             
             st.markdown(f"""<div style="background-color: {bg_color}; border: 2px solid #333; padding: 20px; border-radius: 12px; margin-bottom: 5px; color: black;">""", unsafe_allow_html=True)
             
             cols = st.columns([0.6, 0.8, 6.6, 2]) if is_admin else st.columns([1, 9])
+
             with cols[0]:
-                check_val = st.checkbox("", value=db_status, key=f"w_{task.id}_{db_status}", disabled=(db_status and not is_admin), label_visibility="collapsed")
+                check_val = st.checkbox("", value=db_status, key=unique_key, disabled=(db_status and not is_admin), label_visibility="collapsed")
                 if check_val != db_status:
-                    update_task_status(task.id, check_val); st.rerun()
+                    update_task_status(task_id, check_val); st.rerun()
+            
+            if is_admin:
+                with cols[1]:
+                    u, d = st.columns(2)
+                    if index > 0 and u.button("▲", key=f"u_{task_id}"):
+                        move_task(task_id, cat, current_order, -1); st.rerun()
+                    if index < len(tasks_list) - 1 and d.button("▼", key=f"d_{task_id}"):
+                        move_task(task_id, cat, current_order, 1); st.rerun()
 
             text_col = cols[2] if is_admin else cols[1]
             with text_col:
                 icon = '✅' if db_status else '⏳'
                 st.markdown(f"<span style='font-size: 24px; font-weight: bold;'>{icon} {td['title']}</span>", unsafe_allow_html=True)
                 if td.get("notes"): st.info(f"📝 {td['notes']}")
+                
+                if is_admin:
+                    with st.popover("Edit Note"):
+                        n = st.text_area("Edit:", value=td.get("notes", ""), key=f"nt_{task_id}")
+                        c1, c2 = st.columns(2)
+                        if c1.button("Save", key=f"s_{task_id}"):
+                            db.collection("race_tasks").document(task_id).update({"notes": n}); st.rerun()
+                        if c2.button("🗑️", key=f"del_n_{task_id}"):
+                            db.collection("race_tasks").document(task_id).update({"notes": ""}); st.rerun()
+            
+            if is_admin:
+                with cols[3]:
+                    if st.button("Delete Task", key=f"dt_{task_id}", use_container_width=True):
+                        db.collection("race_tasks").document(task_id).delete(); st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
+            if index < len(tasks_list) - 1:
+                st.markdown("<hr style='border: 0.5px dashed #bbb; margin: 10px auto; width: 90%;'>", unsafe_allow_html=True)
 
 show_tasks()
