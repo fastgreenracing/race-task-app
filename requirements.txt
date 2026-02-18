@@ -1,4 +1,0 @@
-streamlit
-google-cloud-firestore
-grpcio-status==1.48.2
-protobuf==3.19.5
