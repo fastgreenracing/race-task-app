@@ -31,20 +31,24 @@ def add_task(title, category):
         "category": category, 
         "completed": False,
         "completed_at": None,
-        "history": [] # Stores a log of changes
+        "history": [] 
     })
 
-def update_task_status(doc_id, status):
-    update_data = {"completed": status}
-    if status:
-        # Only set timestamp if it hasn't been set before to prevent "shifting"
-        update_data["completed_at"] = get_now()
+def update_task_status(doc_id, new_status):
+    # This logic now explicitly matches the log to the action taken
+    status_text = "✅ Task Completed" if new_status else "⏳ Task Unchecked"
+    log_entry = f"{status_text} at {get_now()}"
     
-    log_entry = f"{'✅ Task Completed' if status else '⏳ Task Unchecked'} at {get_now()}"
-    db.collection("race_tasks").document(doc_id).update({
-        **update_data,
+    update_dict = {
+        "completed": new_status,
         "history": firestore.ArrayUnion([log_entry])
-    })
+    }
+    
+    # Lock the final completion timestamp if it's being checked for the first time
+    if new_status:
+        update_dict["completed_at"] = get_now()
+    
+    db.collection("race_tasks").document(doc_id).update(update_dict)
 
 def add_note(doc_id, note_text):
     if note_text.strip():
@@ -55,12 +59,9 @@ def add_note(doc_id, note_text):
 
 current_categories = get_categories()
 
-# --- SIDEBAR LOGIC ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.header("🔐 Access Control")
-    if 'admin_logged_in' not in st.session_state:
-        st.session_state.admin_logged_in = False
-
     pwd = st.text_input("Admin Password", type="password")
     st.session_state.admin_logged_in = (pwd == ADMIN_PASSWORD)
 
@@ -90,7 +91,7 @@ def show_tasks():
             td = task.to_dict()
             is_done = td.get("completed", False)
             
-            # Stable Color Logic
+            # Fixed Color logic based on CURRENT DB status
             bg_color, border_color = ("#dcfce7", "#22c55e") if is_done else ("#fee2e2", "#ef4444")
             
             st.markdown(
@@ -102,26 +103,26 @@ def show_tasks():
             cols = st.columns([1, 7, 2]) if is_admin else st.columns([1, 9])
 
             with cols[0]:
-                check = st.checkbox("", value=is_done, key=f"check_{task.id}", label_visibility="collapsed")
-                if check != is_done:
-                    update_task_status(task.id, check)
+                # The key to fixing the backward log is capturing the check BEFORE the update
+                check_val = st.checkbox("", value=is_done, key=f"check_{task.id}", label_visibility="collapsed")
+                if check_val != is_done:
+                    update_task_status(task.id, check_val)
                     st.rerun()
             
             with cols[1]:
                 st.markdown(f"**{'✅' if is_done else '⏳'} {td['title']}**")
                 
-                # Show Task History (Visible to everyone)
+                # Activity Log (Shows all historical timestamps)
                 if td.get("history"):
-                    with st.expander("View Activity Log"):
+                    with st.expander("View Activity Log", expanded=True): # Default to expanded as requested
                         for log in reversed(td["history"]):
                             st.caption(log)
                 
-                # Admin Notes
                 if is_admin:
                     with st.popover("Add Note"):
-                        note_text = st.text_area("Note content:", key=f"input_{task.id}")
-                        if st.button("Save Note", key=f"btn_{task.id}"):
-                            add_note(task.id, note_text)
+                        note_input = st.text_area("Observations:", key=f"note_in_{task.id}")
+                        if st.button("Save Note", key=f"save_btn_{task.id}"):
+                            add_note(task.id, note_input)
                             st.rerun()
             
             if is_admin:
