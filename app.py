@@ -35,20 +35,24 @@ def add_task(title, category):
     })
 
 def update_task_status(doc_id, new_status):
-    # This logic now explicitly matches the log to the action taken
-    status_text = "✅ Task Completed" if new_status else "⏳ Task Unchecked"
-    log_entry = f"{status_text} at {get_now()}"
+    # Fetch the current state from DB to prevent duplicate logs
+    doc_ref = db.collection("race_tasks").document(doc_id)
+    current_doc = doc_ref.get().to_dict()
     
-    update_dict = {
-        "completed": new_status,
-        "history": firestore.ArrayUnion([log_entry])
-    }
-    
-    # Lock the final completion timestamp if it's being checked for the first time
-    if new_status:
-        update_dict["completed_at"] = get_now()
-    
-    db.collection("race_tasks").document(doc_id).update(update_dict)
+    # GUARD RAIL: Only update if the status is ACTUALLY changing
+    if current_doc.get("completed") != new_status:
+        status_text = "✅ Task Completed" if new_status else "⏳ Task Unchecked"
+        log_entry = f"{status_text} at {get_now()}"
+        
+        update_dict = {
+            "completed": new_status,
+            "history": firestore.ArrayUnion([log_entry])
+        }
+        
+        if new_status:
+            update_dict["completed_at"] = get_now()
+        
+        doc_ref.update(update_dict)
 
 def add_note(doc_id, note_text):
     if note_text.strip():
@@ -91,7 +95,7 @@ def show_tasks():
             td = task.to_dict()
             is_done = td.get("completed", False)
             
-            # Fixed Color logic based on CURRENT DB status
+            # Logic-based coloring
             bg_color, border_color = ("#dcfce7", "#22c55e") if is_done else ("#fee2e2", "#ef4444")
             
             st.markdown(
@@ -103,7 +107,6 @@ def show_tasks():
             cols = st.columns([1, 7, 2]) if is_admin else st.columns([1, 9])
 
             with cols[0]:
-                # The key to fixing the backward log is capturing the check BEFORE the update
                 check_val = st.checkbox("", value=is_done, key=f"check_{task.id}", label_visibility="collapsed")
                 if check_val != is_done:
                     update_task_status(task.id, check_val)
@@ -112,10 +115,11 @@ def show_tasks():
             with cols[1]:
                 st.markdown(f"**{'✅' if is_done else '⏳'} {td['title']}**")
                 
-                # Activity Log (Shows all historical timestamps)
                 if td.get("history"):
-                    with st.expander("View Activity Log", expanded=True): # Default to expanded as requested
-                        for log in reversed(td["history"]):
+                    with st.expander("View Activity Log", expanded=True):
+                        # Filter out duplicates or conflicting logs in the display logic as a secondary safety
+                        unique_logs = list(dict.fromkeys(td["history"])) 
+                        for log in reversed(unique_logs):
                             st.caption(log)
                 
                 if is_admin:
