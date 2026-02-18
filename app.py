@@ -1,7 +1,3 @@
-Here is the full, updated app.py code. It includes the 50% opacity background mask, the large font sizes for glanceability, the Category Status Lights on the right, and the full administrative sorting and note-deletion logic.
-
-Full app.py Code
-Python
 import streamlit as st
 from google.cloud import firestore
 import json
