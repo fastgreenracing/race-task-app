@@ -1,6 +1,8 @@
 import streamlit as st
 from google.cloud import firestore
 import json
+from datetime import datetime
+import pytz
 
 # 1. Database Connection
 key_dict = json.loads(st.secrets["textkey"])
@@ -11,6 +13,10 @@ st.title("🏃 Fast Green Racing: Live Tracker")
 
 # --- ADMIN SETTINGS ---
 ADMIN_PASSWORD = "fastgreen2026" 
+TIMEZONE = "US/Pacific"
+
+def get_now():
+    return datetime.now(pytz.timezone(TIMEZONE)).strftime("%I:%M %p")
 
 # --- 2. DATA FUNCTIONS ---
 def get_categories():
@@ -19,16 +25,20 @@ def get_categories():
         return cat_ref.to_dict().get("list", ["Transportation", "Course & Traffic", "Vendors", "Finish Line"])
     return ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
 
-def get_cat_status(cat_name):
-    # THE FIX: Replace slashes and spaces to prevent "Odd number of path elements" error
+def get_cat_data(cat_name):
     safe_id = cat_name.replace("/", "_").replace(" ", "_")
     doc = db.collection("settings").document(f"status_{safe_id}").get()
-    return doc.to_dict().get("completed", False) if doc.exists else False
+    if doc.exists:
+        return doc.to_dict()
+    return {"completed": False, "note": "", "timestamp": ""}
 
-def set_cat_status(cat_name, status):
-    # THE FIX: Same sanitization for writing data
+def set_cat_status(cat_name, status, note=None):
     safe_id = cat_name.replace("/", "_").replace(" ", "_")
-    db.collection("settings").document(f"status_{safe_id}").set({"completed": status})
+    data = {"completed": status}
+    if note is not None:
+        data["note"] = note
+        data["timestamp"] = get_now() if note else ""
+    db.collection("settings").document(f"status_{safe_id}").update(data) if db.collection("settings").document(f"status_{safe_id}").get().exists else db.collection("settings").document(f"status_{safe_id}").set(data, merge=True)
 
 def add_task(title, category):
     existing_tasks = db.collection("race_tasks").where("category", "==", category).get()
@@ -36,23 +46,6 @@ def add_task(title, category):
     db.collection("race_tasks").add({
         "title": title, "category": category, "completed": False, "notes": "", "sort_order": new_order
     })
-
-def update_task_status(doc_id, new_status):
-    db.collection("race_tasks").document(doc_id).update({"completed": new_status})
-
-def update_note(doc_id, note_text):
-    db.collection("race_tasks").document(doc_id).update({"notes": note_text})
-
-def delete_note(doc_id):
-    db.collection("race_tasks").document(doc_id).update({"notes": ""})
-
-def move_task(task_id, category, current_order, direction):
-    target_order = current_order + direction
-    query = db.collection("race_tasks").where("category", "==", category).where("sort_order", "==", target_order).limit(1).get()
-    if query:
-        target_doc = query[0]
-        db.collection("race_tasks").document(task_id).update({"sort_order": target_order})
-        db.collection("race_tasks").document(target_doc.id).update({"sort_order": current_order})
 
 # --- 3. SIDEBAR: ACCESS CONTROL ---
 with st.sidebar:
@@ -65,15 +58,16 @@ with st.sidebar:
         st.success("Admin Mode: Active")
         st.divider()
         
-        st.subheader("🚥 Category Status Control")
+        st.subheader("🚥 Category Control")
         cats = get_categories()
         for c in cats:
-            current_s = get_cat_status(c)
-            # Create a unique key for the toggle
-            if st.toggle(f"Ready: {c}", value=current_s, key=f"togg_{c.replace(' ', '_')}"):
-                if not current_s: set_cat_status(c, True)
-            else:
-                if current_s: set_cat_status(c, False)
+            c_data = get_cat_data(c)
+            with st.expander(f"Edit {c}"):
+                new_s = st.toggle("Ready Status", value=c_data.get("completed", False), key=f"t_{c}")
+                new_n = st.text_input("Category Note", value=c_data.get("note", ""), key=f"n_{c}")
+                if st.button("Update Category", key=f"up_{c}"):
+                    set_cat_status(c, new_s, new_n)
+                    st.rerun()
         
         st.divider()
         st.subheader("➕ Add New Task")
@@ -93,19 +87,24 @@ def show_tasks():
     for cat in categories:
         st.markdown("<hr style='border: 2px solid #333; margin-top: 40px; margin-bottom: 20px;'>", unsafe_allow_html=True)
         
-        cat_done = get_cat_status(cat)
-        light_color = "#22c55e" if cat_done else "#ef4444"
+        c_data = get_cat_data(cat)
+        light_color = "#22c55e" if c_data.get("completed") else "#ef4444"
         
-        # Header Layout
+        # Header Layout: Name then Light
         st.markdown(
             f"""
-            <div style="display: flex; align-items: center; margin-bottom: 20px;">
-                <div style="width: 40px; height: 40px; background-color: {light_color}; 
-                            border-radius: 8px; border: 2px solid #333; margin-right: 15px;"></div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                 <h1 style="font-size: 36px; margin: 0;">📍 {cat}</h1>
+                <div style="width: 45px; height: 45px; background-color: {light_color}; 
+                            border-radius: 50%; border: 3px solid #333;"></div>
             </div>
             """, unsafe_allow_html=True
         )
+        
+        # Display Category Note and Timestamp
+        if c_data.get("note"):
+            st.markdown(f"**Status Note:** {c_data['note']} <br> <small>Last Updated: {c_data.get('timestamp', 'N/A')}</small>", unsafe_allow_html=True)
+            st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
         
         try:
             tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
@@ -124,55 +123,50 @@ def show_tasks():
             bg_color = "#dcfce7" if db_status else "#fee2e2"
             border_color = "#22c55e" if db_status else "#ef4444"
             
-            st.markdown(
-                f"""<div style="background-color: {bg_color}; border: 2px solid {border_color}; 
-                padding: 20px; border-radius: 12px; margin-bottom: 5px; color: black;">""", 
-                unsafe_allow_html=True
-            )
+            st.markdown(f"""<div style="background-color: {bg_color}; border: 2px solid {border_color}; padding: 20px; border-radius: 12px; margin-bottom: 5px; color: black;">""", unsafe_allow_html=True)
             
-            if is_admin:
-                cols = st.columns([0.6, 0.8, 6.6, 2]) 
-            else:
-                cols = st.columns([1, 9])
-
+            cols = st.columns([0.6, 0.8, 6.6, 2]) if is_admin else st.columns([1, 9])
             with cols[0]:
                 is_disabled = db_status and not is_admin
-                check_val = st.checkbox("", value=db_status, key=unique_key, disabled=is_disabled, label_visibility="collapsed")
-                if check_val != db_status:
-                    update_task_status(task_id, check_val); st.rerun()
-            
+                if st.checkbox("", value=db_status, key=unique_key, disabled=is_disabled, label_visibility="collapsed"):
+                    if not db_status: 
+                        db.collection("race_tasks").document(task_id).update({"completed": True}); st.rerun()
+                elif db_status:
+                    if is_admin: 
+                        db.collection("race_tasks").document(task_id).update({"completed": False}); st.rerun()
+
             if is_admin:
                 with cols[1]:
-                    up_c, down_c = st.columns(2)
-                    if index > 0:
-                        if up_c.button("▲", key=f"up_{task_id}"):
-                            move_task(task_id, cat, current_order, -1); st.rerun()
-                    if index < len(tasks_list) - 1:
-                        if down_c.button("▼", key=f"down_{task_id}"):
-                            move_task(task_id, cat, current_order, 1); st.rerun()
+                    u, d = st.columns(2)
+                    if index > 0 and u.button("▲", key=f"u_{task_id}"):
+                        target_order = current_order - 1
+                        q = db.collection("race_tasks").where("category", "==", cat).where("sort_order", "==", target_order).limit(1).get()
+                        if q: db.collection("race_tasks").document(q[0].id).update({"sort_order": current_order})
+                        db.collection("race_tasks").document(task_id).update({"sort_order": target_order}); st.rerun()
+                    if index < len(tasks_list)-1 and d.button("▼", key=f"d_{task_id}"):
+                        target_order = current_order + 1
+                        q = db.collection("race_tasks").where("category", "==", cat).where("sort_order", "==", target_order).limit(1).get()
+                        if q: db.collection("race_tasks").document(q[0].id).update({"sort_order": current_order})
+                        db.collection("race_tasks").document(task_id).update({"sort_order": target_order}); st.rerun()
 
             text_col = cols[2] if is_admin else cols[1]
             with text_col:
                 icon = '✅' if db_status else '⏳'
                 st.markdown(f"<span style='font-size: 24px; font-weight: bold;'>{icon} {td['title']}</span>", unsafe_allow_html=True)
                 if td.get("notes"): st.info(f"📝 {td['notes']}")
-                
                 if is_admin:
-                    with st.popover("Edit Notes"):
-                        new_note = st.text_area("Notes:", value=td.get("notes", ""), key=f"note_{task_id}")
-                        n1, n2 = st.columns(2)
-                        if n1.button("Save", key=f"btn_save_{task_id}", use_container_width=True):
-                            update_note(task_id, new_note); st.rerun()
-                        if n2.button("🗑️", key=f"btn_del_n_{task_id}", type="secondary", use_container_width=True):
-                            delete_note(task_id); st.rerun()
+                    with st.popover("Edit"):
+                        n = st.text_area("Note", value=td.get("notes", ""), key=f"nt_{task_id}")
+                        c1, c2 = st.columns(2)
+                        if c1.button("Save", key=f"s_{task_id}"):
+                            db.collection("race_tasks").document(task_id).update({"notes": n}); st.rerun()
+                        if c2.button("🗑️", key=f"del_n_{task_id}"):
+                            db.collection("race_tasks").document(task_id).update({"notes": ""}); st.rerun()
             
-            if is_admin:
-                with cols[3]:
-                    if st.button("Delete Task", key=f"del_{task_id}", type="secondary", use_container_width=True):
-                        db.collection("race_tasks").document(task_id).delete(); st.rerun()
+            if is_admin and cols[3].button("Delete Task", key=f"dt_{task_id}", use_container_width=True):
+                db.collection("race_tasks").document(task_id).delete(); st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
-            if index < len(tasks_list) - 1:
-                st.markdown("<hr style='border: 0.5px dashed #bbb; margin-top: 10px; margin-bottom: 10px; width: 90%; margin-left: auto; margin-right: auto;'>", unsafe_allow_html=True)
+            if index < len(tasks_list) - 1: st.markdown("<hr style='border: 0.5px dashed #bbb; margin: 10px auto; width: 90%;'>", unsafe_allow_html=True)
 
 show_tasks()
