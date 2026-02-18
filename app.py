@@ -1,11 +1,3 @@
-That error is happening because the variable categories is being called inside the "fragment" function before the app has a chance to define what get_categories actually is.
-
-To fix this for good, we need to ensure all functions are defined at the very top of the script. I have also added a "Session State Guard" to ensure the Admin view and User view don't fight over the checkbox value.
-
-The Final, Stabilized app.py
-Replace your entire file with this code. It is designed to be the "production-ready" version for your race day.
-
-Python
 import streamlit as st
 from google.cloud import firestore
 import json
