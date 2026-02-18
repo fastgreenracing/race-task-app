@@ -20,12 +20,15 @@ def get_categories():
     return ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
 
 def get_cat_status(cat_name):
-    # Fetches the Red/Green status for a specific category
-    doc = db.collection("settings").document(f"status_{cat_name}").get()
+    # THE FIX: Replace slashes and spaces to prevent "Odd number of path elements" error
+    safe_id = cat_name.replace("/", "_").replace(" ", "_")
+    doc = db.collection("settings").document(f"status_{safe_id}").get()
     return doc.to_dict().get("completed", False) if doc.exists else False
 
 def set_cat_status(cat_name, status):
-    db.collection("settings").document(f"status_{cat_name}").set({"completed": status})
+    # THE FIX: Same sanitization for writing data
+    safe_id = cat_name.replace("/", "_").replace(" ", "_")
+    db.collection("settings").document(f"status_{safe_id}").set({"completed": status})
 
 def add_task(title, category):
     existing_tasks = db.collection("race_tasks").where("category", "==", category).get()
@@ -66,7 +69,8 @@ with st.sidebar:
         cats = get_categories()
         for c in cats:
             current_s = get_cat_status(c)
-            if st.toggle(f"Status: {c}", value=current_s, key=f"togg_{c}"):
+            # Create a unique key for the toggle
+            if st.toggle(f"Ready: {c}", value=current_s, key=f"togg_{c.replace(' ', '_')}"):
                 if not current_s: set_cat_status(c, True)
             else:
                 if current_s: set_cat_status(c, False)
@@ -87,14 +91,12 @@ def show_tasks():
     categories = get_categories()
     
     for cat in categories:
-        # CATEGORY DIVIDER & HEADER
         st.markdown("<hr style='border: 2px solid #333; margin-top: 40px; margin-bottom: 20px;'>", unsafe_allow_html=True)
         
-        # Display Category Status Light
         cat_done = get_cat_status(cat)
         light_color = "#22c55e" if cat_done else "#ef4444"
         
-        # Header Layout: Light + Name
+        # Header Layout
         st.markdown(
             f"""
             <div style="display: flex; align-items: center; margin-bottom: 20px;">
@@ -109,7 +111,7 @@ def show_tasks():
             tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
             tasks_list = list(tasks_query)
         except Exception:
-            st.warning("Database is indexing. Please check logs for the Index Link if this persists.")
+            st.warning("Database is indexing. Please wait...")
             tasks_list = []
         
         for index, task in enumerate(tasks_list):
@@ -137,8 +139,7 @@ def show_tasks():
                 is_disabled = db_status and not is_admin
                 check_val = st.checkbox("", value=db_status, key=unique_key, disabled=is_disabled, label_visibility="collapsed")
                 if check_val != db_status:
-                    update_task_status(task_id, check_val)
-                    st.rerun()
+                    update_task_status(task_id, check_val); st.rerun()
             
             if is_admin:
                 with cols[1]:
