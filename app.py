@@ -12,7 +12,7 @@ st.title("🏃 Fast Green Racing: Live Tracker")
 # --- ADMIN SETTINGS ---
 ADMIN_PASSWORD = "fastgreen2026" 
 
-# --- 2. DATA FUNCTIONS (Defined first to prevent errors) ---
+# --- 2. DATA FUNCTIONS ---
 def get_categories():
     cat_ref = db.collection("settings").document("categories").get()
     if cat_ref.exists:
@@ -68,7 +68,10 @@ def show_tasks():
             task_id = task.id
             db_status = td.get("completed", False)
             
-            # --- COLOR STABILITY ---
+            # THE FIX: Dynamic key based on DB status forces a hard re-render 
+            # and kills the red/green flickering.
+            unique_key = f"widget_{task_id}_{db_status}_{is_admin}"
+            
             bg_color = "#dcfce7" if db_status else "#fee2e2"
             border_color = "#22c55e" if db_status else "#ef4444"
             
@@ -83,11 +86,10 @@ def show_tasks():
             with cols[0]:
                 is_disabled = db_status and not is_admin
                 
-                # We use the database status as the ONLY source of truth for the checkbox
                 check_val = st.checkbox(
                     "", 
                     value=db_status, 
-                    key=f"widget_{task_id}_{is_admin}", # Unique key for admin vs user
+                    key=unique_key, 
                     disabled=is_disabled, 
                     label_visibility="collapsed"
                 )
@@ -104,7 +106,7 @@ def show_tasks():
                 if is_admin:
                     with st.popover("Edit Notes"):
                         new_note = st.text_area("Notes:", value=td.get("notes", ""), key=f"note_{task_id}")
-                        if st.button("Save", key=f"btn_{task_id}"):
+                        if st.button("Save", key=f"btn_note_{task_id}"):
                             update_note(task_id, new_note)
                             st.rerun()
             
