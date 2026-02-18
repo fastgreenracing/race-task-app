@@ -1,11 +1,3 @@
-To fix these issues, we need to implement Role-Based Locking and ensure each task’s update logic is strictly isolated.
-
-The reason unchecking one task was affecting others is likely due to a "leak" in how the loop handles database references. I have rewritten the update_task_status to be a "Pure Function" that only targets the specific doc_id passed to it. I have also added a logic gate that prevents non-admins from changing a task once its status is True.
-
-Updated app.py
-Replace your entire file with this version. It secures the checkboxes and isolates the timestamps.
-
-Python
 import streamlit as st
 from google.cloud import firestore
 import json
