@@ -1,0 +1,44 @@
+import streamlit as st
+from google.cloud import firestore
+import json
+
+# 1. Database Connection
+# You will get this JSON file from the Google Cloud Console (instructions below)
+key_dict = json.loads(st.secrets["textkey"])
+db = firestore.Client.from_service_account_info(key_dict)
+
+st.title("🏃 Fast Green Racing: Live Task Tracker")
+st.subheader("Real-Time Event Logistics")
+
+# 2. Define Task Categories (Based on your race logistics)
+categories = ["Transportation", "Course & Traffic", "Vendors & Hydration", "Finish Line"]
+
+# 3. App Logic: Load and Update Tasks
+def get_tasks():
+    tasks_ref = db.collection("race_tasks").order_by("category")
+    return tasks_ref.stream()
+
+def update_task(doc_id, status):
+    db.collection("race_tasks").document(doc_id).update({"completed": status})
+
+# 4. Display Tasks
+for cat in categories:
+    with st.expander(f"📍 {cat}", expanded=True):
+        tasks = db.collection("race_tasks").where("category", "==", cat).stream()
+        for task in tasks:
+            task_data = task.to_dict()
+            col1, col2 = st.columns([0.1, 0.9])
+            
+            # If a user clicks, it updates the database immediately
+            is_done = col1.checkbox("", value=task_data["completed"], key=task.id)
+            if is_done != task_data["completed"]:
+                update_task(task.id, is_done)
+                st.rerun()
+            
+            col2.write(task_data["title"])
+
+# Auto-refresh the page every 10 seconds for the "Live" feel
+st.empty()
+import time
+time.sleep(10)
+st.rerun()
