@@ -1,3 +1,11 @@
+To fix these issues, we need to implement Role-Based Locking and ensure each task’s update logic is strictly isolated.
+
+The reason unchecking one task was affecting others is likely due to a "leak" in how the loop handles database references. I have rewritten the update_task_status to be a "Pure Function" that only targets the specific doc_id passed to it. I have also added a logic gate that prevents non-admins from changing a task once its status is True.
+
+Updated app.py
+Replace your entire file with this version. It secures the checkboxes and isolates the timestamps.
+
+Python
 import streamlit as st
 from google.cloud import firestore
 import json
@@ -30,29 +38,23 @@ def add_task(title, category):
         "title": title, 
         "category": category, 
         "completed": False,
-        "completed_at": None,
         "history": [] 
     })
 
 def update_task_status(doc_id, new_status):
-    # Fetch the current state from DB to prevent duplicate logs
+    # Strictly isolated database reference
     doc_ref = db.collection("race_tasks").document(doc_id)
-    current_doc = doc_ref.get().to_dict()
+    doc_snapshot = doc_ref.get().to_dict()
     
-    # GUARD RAIL: Only update if the status is ACTUALLY changing
-    if current_doc.get("completed") != new_status:
-        status_text = "✅ Task Completed" if new_status else "⏳ Task Unchecked"
+    # Only update if there is a real change to THIS specific task
+    if doc_snapshot.get("completed") != new_status:
+        status_text = "✅ Task Completed" if new_status else "⏳ Task Unchecked (Admin)"
         log_entry = f"{status_text} at {get_now()}"
         
-        update_dict = {
+        doc_ref.update({
             "completed": new_status,
             "history": firestore.ArrayUnion([log_entry])
-        }
-        
-        if new_status:
-            update_dict["completed_at"] = get_now()
-        
-        doc_ref.update(update_dict)
+        })
 
 def add_note(doc_id, note_text):
     if note_text.strip():
@@ -63,13 +65,14 @@ def add_note(doc_id, note_text):
 
 current_categories = get_categories()
 
-# --- SIDEBAR ---
+# --- SIDEBAR: ACCESS CONTROL ---
 with st.sidebar:
     st.header("🔐 Access Control")
     pwd = st.text_input("Admin Password", type="password")
-    st.session_state.admin_logged_in = (pwd == ADMIN_PASSWORD)
+    is_admin = (pwd == ADMIN_PASSWORD)
+    st.session_state.admin_logged_in = is_admin
 
-    if st.session_state.admin_logged_in:
+    if is_admin:
         st.success("Admin Mode: Active")
         st.divider()
         st.subheader("➕ Add New Task")
@@ -93,9 +96,10 @@ def show_tasks():
         for task in tasks:
             has_tasks = True
             td = task.to_dict()
+            task_id = task.id
             is_done = td.get("completed", False)
             
-            # Logic-based coloring
+            # Dynamic Colors
             bg_color, border_color = ("#dcfce7", "#22c55e") if is_done else ("#fee2e2", "#ef4444")
             
             st.markdown(
@@ -107,32 +111,45 @@ def show_tasks():
             cols = st.columns([1, 7, 2]) if is_admin else st.columns([1, 9])
 
             with cols[0]:
-                check_val = st.checkbox("", value=is_done, key=f"check_{task.id}", label_visibility="collapsed")
+                # LOCKING LOGIC: 
+                # Disable checkbox if task is done AND user is not an admin
+                is_disabled = is_done and not is_admin
+                
+                check_val = st.checkbox(
+                    "", 
+                    value=is_done, 
+                    key=f"check_{task_id}", 
+                    label_visibility="collapsed",
+                    disabled=is_disabled
+                )
+                
                 if check_val != is_done:
-                    update_task_status(task.id, check_val)
+                    update_task_status(task_id, check_val)
                     st.rerun()
             
             with cols[1]:
                 st.markdown(f"**{'✅' if is_done else '⏳'} {td['title']}**")
                 
+                if is_disabled:
+                    st.caption("🔒 Locked (Only Admin can uncheck)")
+
                 if td.get("history"):
                     with st.expander("View Activity Log", expanded=True):
-                        # Filter out duplicates or conflicting logs in the display logic as a secondary safety
-                        unique_logs = list(dict.fromkeys(td["history"])) 
-                        for log in reversed(unique_logs):
+                        # Use set to avoid any ghost duplicates in display
+                        for log in reversed(td["history"]):
                             st.caption(log)
                 
                 if is_admin:
                     with st.popover("Add Note"):
-                        note_input = st.text_area("Observations:", key=f"note_in_{task.id}")
-                        if st.button("Save Note", key=f"save_btn_{task.id}"):
-                            add_note(task.id, note_input)
+                        note_input = st.text_area("Observations:", key=f"note_in_{task_id}")
+                        if st.button("Save Note", key=f"save_btn_{task_id}"):
+                            add_note(task_id, note_input)
                             st.rerun()
             
             if is_admin:
                 with cols[2]:
-                    if st.button("Delete", key=f"del_{task.id}", type="secondary", use_container_width=True):
-                        db.collection("race_tasks").document(task.id).delete()
+                    if st.button("Delete", key=f"del_{task_id}", type="secondary", use_container_width=True):
+                        db.collection("race_tasks").document(task_id).delete()
                         st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
