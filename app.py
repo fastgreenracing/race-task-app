@@ -1,8 +1,6 @@
 import streamlit as st
 from google.cloud import firestore
 import json
-from datetime import datetime
-import pytz
 
 # 1. Database Connection
 key_dict = json.loads(st.secrets["textkey"])
@@ -13,10 +11,6 @@ st.title("🏃 Fast Green Racing: Live Tracker")
 
 # --- ADMIN SETTINGS ---
 ADMIN_PASSWORD = "fastgreen2026" 
-TIMEZONE = "US/Pacific"
-
-def get_now():
-    return datetime.now(pytz.timezone(TIMEZONE)).strftime("%m/%d %I:%M %p")
 
 # --- DATA FUNCTIONS ---
 def get_categories():
@@ -30,30 +24,14 @@ def add_task(title, category):
         "title": title, 
         "category": category, 
         "completed": False,
-        "history": [] 
+        "notes": ""
     })
 
 def update_task_status(doc_id, new_status):
-    # Strictly isolated database reference
-    doc_ref = db.collection("race_tasks").document(doc_id)
-    doc_snapshot = doc_ref.get().to_dict()
-    
-    # Only update if there is a real change to THIS specific task
-    if doc_snapshot.get("completed") != new_status:
-        status_text = "✅ Task Completed" if new_status else "⏳ Task Unchecked (Admin)"
-        log_entry = f"{status_text} at {get_now()}"
-        
-        doc_ref.update({
-            "completed": new_status,
-            "history": firestore.ArrayUnion([log_entry])
-        })
+    db.collection("race_tasks").document(doc_id).update({"completed": new_status})
 
-def add_note(doc_id, note_text):
-    if note_text.strip():
-        log_entry = f"📝 Note: {note_text} (Added at {get_now()})"
-        db.collection("race_tasks").document(doc_id).update({
-            "history": firestore.ArrayUnion([log_entry])
-        })
+def update_note(doc_id, note_text):
+    db.collection("race_tasks").document(doc_id).update({"notes": note_text})
 
 current_categories = get_categories()
 
@@ -91,7 +69,7 @@ def show_tasks():
             task_id = task.id
             is_done = td.get("completed", False)
             
-            # Dynamic Colors
+            # Dynamic Colors: Red for pending, Green for done
             bg_color, border_color = ("#dcfce7", "#22c55e") if is_done else ("#fee2e2", "#ef4444")
             
             st.markdown(
@@ -103,17 +81,10 @@ def show_tasks():
             cols = st.columns([1, 7, 2]) if is_admin else st.columns([1, 9])
 
             with cols[0]:
-                # LOCKING LOGIC: 
-                # Disable checkbox if task is done AND user is not an admin
+                # Lock: Disable if done AND user is not admin
                 is_disabled = is_done and not is_admin
-                
-                check_val = st.checkbox(
-                    "", 
-                    value=is_done, 
-                    key=f"check_{task_id}", 
-                    label_visibility="collapsed",
-                    disabled=is_disabled
-                )
+                check_val = st.checkbox("", value=is_done, key=f"check_{task_id}", 
+                                        disabled=is_disabled, label_visibility="collapsed")
                 
                 if check_val != is_done:
                     update_task_status(task_id, check_val)
@@ -122,20 +93,16 @@ def show_tasks():
             with cols[1]:
                 st.markdown(f"**{'✅' if is_done else '⏳'} {td['title']}**")
                 
-                if is_disabled:
-                    st.caption("🔒 Locked (Only Admin can uncheck)")
-
-                if td.get("history"):
-                    with st.expander("View Activity Log", expanded=True):
-                        # Use set to avoid any ghost duplicates in display
-                        for log in reversed(td["history"]):
-                            st.caption(log)
+                # Show Notes to everyone if they exist
+                if td.get("notes"):
+                    st.info(f"📝 {td['notes']}")
                 
+                # Admin can edit notes
                 if is_admin:
-                    with st.popover("Add Note"):
-                        note_input = st.text_area("Observations:", key=f"note_in_{task_id}")
+                    with st.popover("Edit Notes"):
+                        new_note = st.text_area("Observations:", value=td.get("notes", ""), key=f"note_in_{task_id}")
                         if st.button("Save Note", key=f"save_btn_{task_id}"):
-                            add_note(task_id, note_input)
+                            update_note(task_id, new_note)
                             st.rerun()
             
             if is_admin:
