@@ -15,6 +15,9 @@ st.title("🏃 Fast Green Racing: Live Tracker")
 ADMIN_PASSWORD = "fastgreen2026" 
 TIMEZONE = "US/Pacific"
 
+def get_now():
+    return datetime.now(pytz.timezone(TIMEZONE)).strftime("%m/%d %I:%M %p")
+
 # --- DATA FUNCTIONS ---
 def get_categories():
     cat_ref = db.collection("settings").document("categories").get()
@@ -28,14 +31,27 @@ def add_task(title, category):
         "category": category, 
         "completed": False,
         "completed_at": None,
-        "notes": "" # Added notes field
+        "history": [] # Stores a log of changes
     })
 
-def delete_task(doc_id):
-    db.collection("race_tasks").document(doc_id).delete()
+def update_task_status(doc_id, status):
+    update_data = {"completed": status}
+    if status:
+        # Only set timestamp if it hasn't been set before to prevent "shifting"
+        update_data["completed_at"] = get_now()
+    
+    log_entry = f"{'✅ Task Completed' if status else '⏳ Task Unchecked'} at {get_now()}"
+    db.collection("race_tasks").document(doc_id).update({
+        **update_data,
+        "history": firestore.ArrayUnion([log_entry])
+    })
 
-def update_notes(doc_id, note_text):
-    db.collection("race_tasks").document(doc_id).update({"notes": note_text})
+def add_note(doc_id, note_text):
+    if note_text.strip():
+        log_entry = f"📝 Note: {note_text} (Added at {get_now()})"
+        db.collection("race_tasks").document(doc_id).update({
+            "history": firestore.ArrayUnion([log_entry])
+        })
 
 current_categories = get_categories()
 
@@ -46,13 +62,10 @@ with st.sidebar:
         st.session_state.admin_logged_in = False
 
     pwd = st.text_input("Admin Password", type="password")
-    if pwd == ADMIN_PASSWORD:
-        st.session_state.admin_logged_in = True
-        st.success("Admin Mode: Active")
-    else:
-        st.session_state.admin_logged_in = False
+    st.session_state.admin_logged_in = (pwd == ADMIN_PASSWORD)
 
     if st.session_state.admin_logged_in:
+        st.success("Admin Mode: Active")
         st.divider()
         st.subheader("➕ Add New Task")
         new_title = st.text_input("Task Description")
@@ -75,53 +88,46 @@ def show_tasks():
         for task in tasks:
             has_tasks = True
             td = task.to_dict()
+            is_done = td.get("completed", False)
             
-            # Color Logic
-            if td.get("completed"):
-                bg_color, border_color, text_color = "#dcfce7", "#22c55e", "#166534"
-            else:
-                bg_color, border_color, text_color = "#fee2e2", "#ef4444", "#991b1b"
+            # Stable Color Logic
+            bg_color, border_color = ("#dcfce7", "#22c55e") if is_done else ("#fee2e2", "#ef4444")
             
             st.markdown(
-                f"""
-                <div style="background-color: {bg_color}; border: 2px solid {border_color}; 
-                            padding: 15px; border-radius: 10px; margin-bottom: 10px; color: {text_color};">
-                """, unsafe_allow_html=True
+                f"""<div style="background-color: {bg_color}; border: 2px solid {border_color}; 
+                padding: 15px; border-radius: 10px; margin-bottom: 10px; color: black;">""", 
+                unsafe_allow_html=True
             )
             
-            # Layout: Admin gets 3 columns (Check, Text, Delete)
-            cols = st.columns([1, 6, 2]) if is_admin else st.columns([1, 8])
+            cols = st.columns([1, 7, 2]) if is_admin else st.columns([1, 9])
 
             with cols[0]:
-                is_done = st.checkbox("", value=td.get("completed", False), key=f"check_{task.id}", label_visibility="collapsed")
-                if is_done != td.get("completed"):
-                    ts = datetime.now(pytz.timezone(TIMEZONE)).strftime("%m/%d %I:%M %p") if is_done else None
-                    db.collection("race_tasks").document(task.id).update({
-                        "completed": is_done,
-                        "completed_at": ts
-                    })
+                check = st.checkbox("", value=is_done, key=f"check_{task.id}", label_visibility="collapsed")
+                if check != is_done:
+                    update_task_status(task.id, check)
                     st.rerun()
             
             with cols[1]:
-                status_icon = "✅" if td.get("completed") else "⏳"
-                st.markdown(f"**{status_icon} {td['title']}**")
+                st.markdown(f"**{'✅' if is_done else '⏳'} {td['title']}**")
                 
-                # Show timestamp to everyone
-                if td.get("completed_at"):
-                    st.caption(f"🕒 Finished: {td['completed_at']}")
+                # Show Task History (Visible to everyone)
+                if td.get("history"):
+                    with st.expander("View Activity Log"):
+                        for log in reversed(td["history"]):
+                            st.caption(log)
                 
-                # Admin Notes Section
+                # Admin Notes
                 if is_admin:
-                    existing_note = td.get("notes", "")
-                    note_input = st.text_input("Admin Notes", value=existing_note, key=f"note_{task.id}", placeholder="Add race day observations...")
-                    if note_input != existing_note:
-                        update_notes(task.id, note_input)
-                        # No rerun needed here to keep typing smooth
+                    with st.popover("Add Note"):
+                        note_text = st.text_area("Note content:", key=f"input_{task.id}")
+                        if st.button("Save Note", key=f"btn_{task.id}"):
+                            add_note(task.id, note_text)
+                            st.rerun()
             
             if is_admin:
                 with cols[2]:
                     if st.button("Delete", key=f"del_{task.id}", type="secondary", use_container_width=True):
-                        delete_task(task.id)
+                        db.collection("race_tasks").document(task.id).delete()
                         st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
