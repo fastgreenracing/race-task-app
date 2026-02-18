@@ -20,7 +20,6 @@ def get_categories():
     return ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
 
 def add_task(title, category):
-    # Get current tasks in category to determine the next sort_order
     existing_tasks = db.collection("race_tasks").where("category", "==", category).get()
     new_order = len(existing_tasks)
     
@@ -40,12 +39,10 @@ def update_note(doc_id, note_text):
 
 def move_task(task_id, category, current_order, direction):
     target_order = current_order + direction
-    # Find the task currently occupying the target slot
     query = db.collection("race_tasks").where("category", "==", category).where("sort_order", "==", target_order).limit(1).get()
     
     if query:
         target_doc = query[0]
-        # Swap orders
         db.collection("race_tasks").document(task_id).update({"sort_order": target_order})
         db.collection("race_tasks").document(target_doc.id).update({"sort_order": current_order})
 
@@ -74,11 +71,11 @@ def show_tasks():
     categories = get_categories()
     
     for cat in categories:
-        # CATEGORY FONT INCREASE (36px)
-        st.markdown(f"<h1 style='font-size: 36px; margin-top: 20px; margin-bottom: 10px;'>📍 {cat}</h1>", unsafe_allow_html=True)
+        # CATEGORY DIVIDER & HEADER
+        st.markdown("<hr style='border: 2px solid #333; margin-top: 40px; margin-bottom: 20px;'>", unsafe_allow_html=True)
+        st.markdown(f"<h1 style='font-size: 36px; margin-bottom: 20px;'>📍 {cat}</h1>", unsafe_allow_html=True)
         
         try:
-            # Requires a Composite Index in Firestore (category ASC, sort_order ASC)
             tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
             tasks_list = list(tasks_query)
         except Exception:
@@ -93,14 +90,13 @@ def show_tasks():
             db_status = td.get("completed", False)
             current_order = td.get("sort_order", index)
             
-            # UNIQUE KEY to prevent flickering
             unique_key = f"widget_{task_id}_{db_status}_{is_admin}"
             bg_color = "#dcfce7" if db_status else "#fee2e2"
             border_color = "#22c55e" if db_status else "#ef4444"
             
             st.markdown(
                 f"""<div style="background-color: {bg_color}; border: 2px solid {border_color}; 
-                padding: 20px; border-radius: 12px; margin-bottom: 12px; color: black;">""", 
+                padding: 20px; border-radius: 12px; margin-bottom: 5px; color: black;">""", 
                 unsafe_allow_html=True
             )
             
@@ -130,7 +126,6 @@ def show_tasks():
 
             text_col = cols[2] if is_admin else cols[1]
             with text_col:
-                # TASK FONT INCREASE (24px)
                 icon = '✅' if db_status else '⏳'
                 st.markdown(f"<span style='font-size: 24px; font-weight: bold;'>{icon} {td['title']}</span>", unsafe_allow_html=True)
                 
@@ -151,6 +146,10 @@ def show_tasks():
                         st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
+            
+            # TASK DIVIDER: A lesser defining line between tasks
+            if index < len(tasks_list) - 1:
+                st.markdown("<hr style='border: 0.5px dashed #bbb; margin-top: 10px; margin-bottom: 10px; width: 90%; margin-left: auto; margin-right: auto;'>", unsafe_allow_html=True)
         
         if not has_tasks:
             st.caption(f"No active tasks in {cat}")
