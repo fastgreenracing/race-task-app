@@ -1,6 +1,8 @@
 import streamlit as st
 from google.cloud import firestore
 import json
+from datetime import datetime
+import pytz
 
 # 1. Database Connection
 key_dict = json.loads(st.secrets["textkey"])
@@ -11,6 +13,7 @@ st.title("🏃 Fast Green Racing: Live Tracker")
 
 # --- ADMIN PASSWORD ---
 ADMIN_PASSWORD = "fastgreen2026" 
+TIMEZONE = "US/Pacific" # Adjusted for Ventura/Ojai logistics
 
 # --- DATA FUNCTIONS ---
 def get_categories():
@@ -23,7 +26,12 @@ def update_categories(new_list):
     db.collection("settings").document("categories").set({"list": new_list})
 
 def add_task(title, category):
-    db.collection("race_tasks").add({"title": title, "category": category, "completed": False})
+    db.collection("race_tasks").add({
+        "title": title, 
+        "category": category, 
+        "completed": False,
+        "completed_at": None
+    })
 
 def delete_task(doc_id):
     db.collection("race_tasks").document(doc_id).delete()
@@ -53,15 +61,6 @@ with st.sidebar:
                 add_task(new_title, new_cat)
                 st.rerun()
 
-        st.divider()
-        st.subheader("⚙️ Category Manager")
-        new_cat_name = st.text_input("New Category Name")
-        if st.button("Add Category", use_container_width=True):
-            if new_cat_name and new_cat_name not in current_categories:
-                current_categories.append(new_cat_name)
-                update_categories(current_categories)
-                st.rerun()
-
 # --- MAIN UI DISPLAY ---
 @st.fragment(run_every=10)
 def show_tasks():
@@ -76,38 +75,45 @@ def show_tasks():
             has_tasks = True
             td = task.to_dict()
             
-            # Highlight variables
-            bg_color = "#dcfce7" if td["completed"] else "white"
-            border_color = "#22c55e" if td["completed"] else "#e5e7eb"
+            # --- COLOR LOGIC ---
+            if td["completed"]:
+                bg_color = "#dcfce7" # Light Green
+                border_color = "#22c55e"
+                text_color = "#166534"
+            else:
+                bg_color = "#fee2e2" # Light Red/Pink
+                border_color = "#ef4444"
+                text_color = "#991b1b"
             
-            # Styled wrapper
             st.markdown(
                 f"""
                 <div style="background-color: {bg_color}; border: 2px solid {border_color}; 
-                            padding: 15px; border-radius: 10px; margin-bottom: 10px; color: black;">
+                            padding: 15px; border-radius: 10px; margin-bottom: 10px; color: {text_color};">
                 """, 
                 unsafe_allow_html=True
             )
             
-            if is_admin:
-                col_check, col_text, col_del = st.columns([1, 6, 2])
-            else:
-                col_check, col_text = st.columns([1, 8])
+            cols = st.columns([1, 6, 2]) if is_admin else st.columns([1, 8])
 
-            with col_check:
+            with cols[0]:
                 is_done = st.checkbox("", value=td["completed"], key=f"check_{task.id}", label_visibility="collapsed")
-                if is_done != td["completed"]:
-                    db.collection("race_tasks").document(task.id).update({"completed": is_done})
+                if is_done != td.get("completed"):
+                    # Record timestamp on completion
+                    ts = datetime.now(pytz.timezone(TIMEZONE)).strftime("%m/%d %I:%M %p") if is_done else None
+                    db.collection("race_tasks").document(task.id).update({
+                        "completed": is_done,
+                        "completed_at": ts
+                    })
                     st.rerun()
             
-            with col_text:
-                if td["completed"]:
-                    st.markdown(f"<span style='color: #166534;'><b>✅ {td['title']}</b></span>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<span style='color: #374151;'>{td['title']}</span>", unsafe_allow_html=True)
+            with cols[1]:
+                status_icon = "✅" if td["completed"] else "⏳"
+                st.markdown(f"**{status_icon} {td['title']}**")
+                if td.get("completed_at"):
+                    st.caption(f"Finished: {td['completed_at']}")
             
             if is_admin:
-                with col_del:
+                with cols[2]:
                     if st.button("Delete", key=f"del_{task.id}", type="secondary", use_container_width=True):
                         delete_task(task.id)
                         st.rerun()
@@ -116,6 +122,5 @@ def show_tasks():
         
         if not has_tasks:
             st.caption(f"No active tasks in {cat}")
-        st.write("") 
 
 show_tasks()
