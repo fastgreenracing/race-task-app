@@ -19,16 +19,19 @@ def get_categories():
         return cat_ref.to_dict().get("list", ["Transportation", "Course & Traffic", "Vendors", "Finish Line"])
     return ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
 
+def get_cat_status(cat_name):
+    # Fetches the Red/Green status for a specific category
+    doc = db.collection("settings").document(f"status_{cat_name}").get()
+    return doc.to_dict().get("completed", False) if doc.exists else False
+
+def set_cat_status(cat_name, status):
+    db.collection("settings").document(f"status_{cat_name}").set({"completed": status})
+
 def add_task(title, category):
     existing_tasks = db.collection("race_tasks").where("category", "==", category).get()
     new_order = len(existing_tasks)
-    
     db.collection("race_tasks").add({
-        "title": title, 
-        "category": category, 
-        "completed": False,
-        "notes": "",
-        "sort_order": new_order
+        "title": title, "category": category, "completed": False, "notes": "", "sort_order": new_order
     })
 
 def update_task_status(doc_id, new_status):
@@ -43,7 +46,6 @@ def delete_note(doc_id):
 def move_task(task_id, category, current_order, direction):
     target_order = current_order + direction
     query = db.collection("race_tasks").where("category", "==", category).where("sort_order", "==", target_order).limit(1).get()
-    
     if query:
         target_doc = query[0]
         db.collection("race_tasks").document(task_id).update({"sort_order": target_order})
@@ -59,9 +61,20 @@ with st.sidebar:
     if is_admin:
         st.success("Admin Mode: Active")
         st.divider()
+        
+        st.subheader("🚥 Category Status Control")
+        cats = get_categories()
+        for c in cats:
+            current_s = get_cat_status(c)
+            if st.toggle(f"Status: {c}", value=current_s, key=f"togg_{c}"):
+                if not current_s: set_cat_status(c, True)
+            else:
+                if current_s: set_cat_status(c, False)
+        
+        st.divider()
         st.subheader("➕ Add New Task")
         new_title = st.text_input("Task Description")
-        new_cat = st.selectbox("Assign to Category", get_categories())
+        new_cat = st.selectbox("Assign to Category", cats)
         if st.button("Add Task", use_container_width=True):
             if new_title:
                 add_task(new_title, new_cat)
@@ -76,7 +89,21 @@ def show_tasks():
     for cat in categories:
         # CATEGORY DIVIDER & HEADER
         st.markdown("<hr style='border: 2px solid #333; margin-top: 40px; margin-bottom: 20px;'>", unsafe_allow_html=True)
-        st.markdown(f"<h1 style='font-size: 36px; margin-bottom: 20px;'>📍 {cat}</h1>", unsafe_allow_html=True)
+        
+        # Display Category Status Light
+        cat_done = get_cat_status(cat)
+        light_color = "#22c55e" if cat_done else "#ef4444"
+        
+        # Header Layout: Light + Name
+        st.markdown(
+            f"""
+            <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                <div style="width: 40px; height: 40px; background-color: {light_color}; 
+                            border-radius: 8px; border: 2px solid #333; margin-right: 15px;"></div>
+                <h1 style="font-size: 36px; margin: 0;">📍 {cat}</h1>
+            </div>
+            """, unsafe_allow_html=True
+        )
         
         try:
             tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
@@ -84,8 +111,6 @@ def show_tasks():
         except Exception:
             st.warning("Database is indexing. Please check logs for the Index Link if this persists.")
             tasks_list = []
-        
-        has_tasks = len(tasks_list) > 0
         
         for index, task in enumerate(tasks_list):
             td = task.to_dict()
@@ -120,45 +145,33 @@ def show_tasks():
                     up_c, down_c = st.columns(2)
                     if index > 0:
                         if up_c.button("▲", key=f"up_{task_id}"):
-                            move_task(task_id, cat, current_order, -1)
-                            st.rerun()
+                            move_task(task_id, cat, current_order, -1); st.rerun()
                     if index < len(tasks_list) - 1:
                         if down_c.button("▼", key=f"down_{task_id}"):
-                            move_task(task_id, cat, current_order, 1)
-                            st.rerun()
+                            move_task(task_id, cat, current_order, 1); st.rerun()
 
             text_col = cols[2] if is_admin else cols[1]
             with text_col:
                 icon = '✅' if db_status else '⏳'
                 st.markdown(f"<span style='font-size: 24px; font-weight: bold;'>{icon} {td['title']}</span>", unsafe_allow_html=True)
-                
-                if td.get("notes"):
-                    st.info(f"📝 {td['notes']}")
+                if td.get("notes"): st.info(f"📝 {td['notes']}")
                 
                 if is_admin:
                     with st.popover("Edit Notes"):
                         new_note = st.text_area("Notes:", value=td.get("notes", ""), key=f"note_{task_id}")
-                        # Action Buttons for notes
-                        n_col1, n_col2 = st.columns(2)
-                        if n_col1.button("Save", key=f"btn_save_{task_id}", use_container_width=True):
-                            update_note(task_id, new_note)
-                            st.rerun()
-                        if n_col2.button("🗑️ Delete Note", key=f"btn_del_note_{task_id}", type="secondary", use_container_width=True):
-                            delete_note(task_id)
-                            st.rerun()
+                        n1, n2 = st.columns(2)
+                        if n1.button("Save", key=f"btn_save_{task_id}", use_container_width=True):
+                            update_note(task_id, new_note); st.rerun()
+                        if n2.button("🗑️", key=f"btn_del_n_{task_id}", type="secondary", use_container_width=True):
+                            delete_note(task_id); st.rerun()
             
             if is_admin:
                 with cols[3]:
                     if st.button("Delete Task", key=f"del_{task_id}", type="secondary", use_container_width=True):
-                        db.collection("race_tasks").document(task_id).delete()
-                        st.rerun()
+                        db.collection("race_tasks").document(task_id).delete(); st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
-            
             if index < len(tasks_list) - 1:
                 st.markdown("<hr style='border: 0.5px dashed #bbb; margin-top: 10px; margin-bottom: 10px; width: 90%; margin-left: auto; margin-right: auto;'>", unsafe_allow_html=True)
-        
-        if not has_tasks:
-            st.caption(f"No active tasks in {cat}")
 
 show_tasks()
