@@ -11,9 +11,9 @@ db = firestore.Client.from_service_account_info(key_dict)
 st.set_page_config(page_title="Race Logistics", page_icon="🏃", layout="wide")
 st.title("🏃 Fast Green Racing: Live Tracker")
 
-# --- ADMIN PASSWORD ---
+# --- ADMIN SETTINGS ---
 ADMIN_PASSWORD = "fastgreen2026" 
-TIMEZONE = "US/Pacific" # Adjusted for Ventura/Ojai logistics
+TIMEZONE = "US/Pacific"
 
 # --- DATA FUNCTIONS ---
 def get_categories():
@@ -22,19 +22,20 @@ def get_categories():
         return cat_ref.to_dict().get("list", ["Transportation", "Course & Traffic", "Vendors", "Finish Line"])
     return ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
 
-def update_categories(new_list):
-    db.collection("settings").document("categories").set({"list": new_list})
-
 def add_task(title, category):
     db.collection("race_tasks").add({
         "title": title, 
         "category": category, 
         "completed": False,
-        "completed_at": None
+        "completed_at": None,
+        "notes": "" # Added notes field
     })
 
 def delete_task(doc_id):
     db.collection("race_tasks").document(doc_id).delete()
+
+def update_notes(doc_id, note_text):
+    db.collection("race_tasks").document(doc_id).update({"notes": note_text})
 
 current_categories = get_categories()
 
@@ -75,30 +76,25 @@ def show_tasks():
             has_tasks = True
             td = task.to_dict()
             
-            # --- COLOR LOGIC ---
-            if td["completed"]:
-                bg_color = "#dcfce7" # Light Green
-                border_color = "#22c55e"
-                text_color = "#166534"
+            # Color Logic
+            if td.get("completed"):
+                bg_color, border_color, text_color = "#dcfce7", "#22c55e", "#166534"
             else:
-                bg_color = "#fee2e2" # Light Red/Pink
-                border_color = "#ef4444"
-                text_color = "#991b1b"
+                bg_color, border_color, text_color = "#fee2e2", "#ef4444", "#991b1b"
             
             st.markdown(
                 f"""
                 <div style="background-color: {bg_color}; border: 2px solid {border_color}; 
                             padding: 15px; border-radius: 10px; margin-bottom: 10px; color: {text_color};">
-                """, 
-                unsafe_allow_html=True
+                """, unsafe_allow_html=True
             )
             
+            # Layout: Admin gets 3 columns (Check, Text, Delete)
             cols = st.columns([1, 6, 2]) if is_admin else st.columns([1, 8])
 
             with cols[0]:
-                is_done = st.checkbox("", value=td["completed"], key=f"check_{task.id}", label_visibility="collapsed")
+                is_done = st.checkbox("", value=td.get("completed", False), key=f"check_{task.id}", label_visibility="collapsed")
                 if is_done != td.get("completed"):
-                    # Record timestamp on completion
                     ts = datetime.now(pytz.timezone(TIMEZONE)).strftime("%m/%d %I:%M %p") if is_done else None
                     db.collection("race_tasks").document(task.id).update({
                         "completed": is_done,
@@ -107,10 +103,20 @@ def show_tasks():
                     st.rerun()
             
             with cols[1]:
-                status_icon = "✅" if td["completed"] else "⏳"
+                status_icon = "✅" if td.get("completed") else "⏳"
                 st.markdown(f"**{status_icon} {td['title']}**")
+                
+                # Show timestamp to everyone
                 if td.get("completed_at"):
-                    st.caption(f"Finished: {td['completed_at']}")
+                    st.caption(f"🕒 Finished: {td['completed_at']}")
+                
+                # Admin Notes Section
+                if is_admin:
+                    existing_note = td.get("notes", "")
+                    note_input = st.text_input("Admin Notes", value=existing_note, key=f"note_{task.id}", placeholder="Add race day observations...")
+                    if note_input != existing_note:
+                        update_notes(task.id, note_input)
+                        # No rerun needed here to keep typing smooth
             
             if is_admin:
                 with cols[2]:
