@@ -1,23 +1,15 @@
-To give you that immediate visual satisfaction of a job well done, we can wrap each task in a custom "Status Box."
-
-Since standard Streamlit checkboxes don't support dynamic background colors out of the box, I’ve used a small bit of Markdown with HTML/CSS to style the container. Now, when a volunteer checks a task, the entire background of that row will glow green.
-
-Updated app.py
-Replace your show_tasks function (or the whole file) with this version:
-
-Python
 import streamlit as st
 from google.cloud import firestore
 import json
 
-# Database Connection
+# 1. Database Connection
 key_dict = json.loads(st.secrets["textkey"])
 db = firestore.Client.from_service_account_info(key_dict)
 
 st.set_page_config(page_title="Race Logistics", page_icon="🏃", layout="wide")
 st.title("🏃 Fast Green Racing: Live Tracker")
 
-# --- SET YOUR PASSWORD HERE ---
+# --- ADMIN PASSWORD ---
 ADMIN_PASSWORD = "fastgreen2026" 
 
 # --- DATA FUNCTIONS ---
@@ -84,20 +76,19 @@ def show_tasks():
             has_tasks = True
             td = task.to_dict()
             
-            # --- CUSTOM DYNAMIC STYLING ---
-            bg_color = "rgba(40, 167, 69, 0.2)" if td["completed"] else "rgba(0,0,0,0)"
-            border_color = "#28a745" if td["completed"] else "#d1d5db"
+            # Highlight variables
+            bg_color = "#dcfce7" if td["completed"] else "white"
+            border_color = "#22c55e" if td["completed"] else "#e5e7eb"
             
-            # This creates a "wrapper" around the task
+            # Styled wrapper
             st.markdown(
                 f"""
                 <div style="background-color: {bg_color}; border: 2px solid {border_color}; 
-                            padding: 10px; border-radius: 10px; margin-bottom: 5px;">
+                            padding: 15px; border-radius: 10px; margin-bottom: 10px; color: black;">
                 """, 
                 unsafe_allow_html=True
             )
             
-            # Place the interactive elements on top of the styled background
             if is_admin:
                 col_check, col_text, col_del = st.columns([1, 6, 2])
             else:
@@ -111,9 +102,9 @@ def show_tasks():
             
             with col_text:
                 if td["completed"]:
-                    st.markdown(f"**✅ {td['title']}**")
+                    st.markdown(f"<span style='color: #166534;'><b>✅ {td['title']}</b></span>", unsafe_allow_html=True)
                 else:
-                    st.write(td["title"])
+                    st.markdown(f"<span style='color: #374151;'>{td['title']}</span>", unsafe_allow_html=True)
             
             if is_admin:
                 with col_del:
