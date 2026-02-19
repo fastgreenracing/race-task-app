@@ -118,8 +118,7 @@ def show_tasks():
         
         c_data = get_cat_data(cat)
         
-        # UI UPDATED: Removed the bulb column, adjusted the ratio to [7.5, 2.5]
-        col_name, col_status_group = st.columns([7.5, 2.5])
+        col_name, col_status_group = st.columns([7, 3])
         
         with col_name:
             st.header(f"📍 {cat}")
@@ -128,11 +127,11 @@ def show_tasks():
             is_go = c_data.get("completed", False)
             s_text = "GO" if is_go else "NO GO"
             s_color = "green" if is_go else "red"
-            # Centered STATUS over GO/NO GO
+            # Centered STATUS over GO/NO GO with 25% font increase
             st.markdown(f"""
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
                     <p style="margin-bottom: -5px; font-weight: bold; font-size: 20px; color: #333; text-transform: uppercase;">STATUS</p>
-                    <h2 style="color: {s_color}; margin: 0; font-weight: 900; font-size: 38px; line-height: 1;">{s_text}</h2>
+                    <h2 style="color: {s_color}; margin: 0; font-weight: 900; font-size: 48px; line-height: 1; white-space: nowrap;">{s_text}</h2>
                 </div>
             """, unsafe_allow_html=True)
 
