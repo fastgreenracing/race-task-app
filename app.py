@@ -1,3 +1,7 @@
+I've integrated the Clear All Staff functionality into your main app.py. I placed it right at the bottom of the Admin sidebar so it’s easy to find but won’t get in the way of your category and task management.
+
+Full Updated app.py
+Python
 import streamlit as st
 from google.cloud import firestore
 import json
@@ -16,7 +20,7 @@ st.set_page_config(
 )
 
 # --- CSS FOR UI ---
-BACKGROUND_IMAGE_URL = "https://photos.smugmug.com/Mountains-2-Beach-Marathons/2018-Clif-Bar-Mountains-to-Beach-Marathon-Half/M2B-2018-Full-Marathon/M2B-2018-Full-Marathon-The-Start/i-dfXFsF4/2/KhM2r3JQqVtWPLHJdSsTbZzbPRTQp8fjhcHzQ2rCN/X2/DHHolmes_180527_DH0114_M2B-X2.jpg"
+BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?auto=format&fit=crop&w=2070&q=80"
 
 st.markdown(
     f"""
@@ -80,7 +84,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title("Fast Green Racing: Live Tracker")
+st.title("🏃 Fast Green Racing: Live Tracker")
 
 # --- ADMIN SETTINGS ---
 ADMIN_PASSWORD = "fastgreen2026" 
@@ -125,17 +129,6 @@ with st.sidebar:
     if is_admin:
         st.success("Admin Mode")
         current_cats = get_categories()
-    # --- STAFF MAP ADMIN ---
-st.divider()
-st.subheader("🗺️ Map Management")
-if st.button("Clear All Staff from Map", type="primary"):
-    staff_docs = db.collection("staff_locations").stream()
-    count = 0
-    for doc in staff_docs:
-        db.collection("staff_locations").document(doc.id).delete()
-        count += 1
-    st.success(f"Cleared {count} staff members from the map.")
-    st.rerun()
         
         # 1. LIVE STATUS
         st.divider()
@@ -201,6 +194,18 @@ if st.button("Clear All Staff from Map", type="primary"):
             if st.button("Add Task"):
                 db.collection("race_tasks").add({"category": nt_cat, "title": nt_title, "completed": False, "sort_order": 99}); st.rerun()
 
+        # 4. STAFF MAP ADMIN
+        st.divider()
+        st.subheader("🗺️ Map Management")
+        if st.button("Clear All Staff from Map", type="primary"):
+            staff_docs = db.collection("staff_locations").stream()
+            count = 0
+            for doc in staff_docs:
+                db.collection("staff_locations").document(doc.id).delete()
+                count += 1
+            st.success(f"Cleared {count} staff members from the map.")
+            st.rerun()
+
 # --- MAIN DISPLAY ---
 @st.fragment(run_every=5)
 def show_tasks():
@@ -214,7 +219,6 @@ def show_tasks():
         
         col_name, col_status_group = st.columns([7, 3])
         with col_name:
-            # CATEGORY HEADER: Pin removed, Bold & Underlined
             st.markdown(f"## <u>**{cat}**</u>", unsafe_allow_html=True)
         with col_status_group:
             is_go = c_data.get("completed", False)
