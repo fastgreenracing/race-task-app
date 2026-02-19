@@ -1,3 +1,9 @@
+I have added Rename functionality to the management sections in the sidebar. You can now edit the names of existing categories and tasks directly.
+
+When you rename a category, the app is smart enough to find all the tasks associated with the old name and move them to the new name automatically so you don't lose any data.
+
+Full Updated app.py
+Python
 import streamlit as st
 from google.cloud import firestore
 import json
@@ -73,7 +79,6 @@ def get_categories():
     return []
 
 def save_categories(cat_data_list):
-    # Ensure orders are sequential 0, 1, 2...
     for i, cat in enumerate(cat_data_list):
         cat['order'] = i
     db.collection("settings").document("categories").set({"data": cat_data_list})
@@ -105,7 +110,7 @@ with st.sidebar:
         st.divider()
         st.subheader("📁 Manage Categories")
         
-        with st.expander("🔢 Move / 🗑️ Delete Categories"):
+        with st.expander("🔢 Move / 📝 Rename / 🗑️ Delete"):
             for i, cat in enumerate(current_cats):
                 col_name, col_up, col_down, col_del = st.columns([4, 1, 1, 1])
                 col_name.write(f"**{cat['name']}**")
@@ -124,10 +129,24 @@ with st.sidebar:
                     current_cats.pop(i)
                     save_categories(current_cats)
                     st.rerun()
+                
+                # RENAME CATEGORY
+                new_c_name = st.text_input("Rename to:", value=cat['name'], key=f"rename_cat_in_{i}")
+                if new_c_name != cat['name']:
+                    if st.button(f"Confirm Rename '{cat['name']}'", key=f"conf_ren_cat_{i}"):
+                        old_name = cat['name']
+                        cat['name'] = new_c_name
+                        save_categories(current_cats)
+                        # Migrate tasks to new category name
+                        tasks_to_migrate = db.collection("race_tasks").where("category", "==", old_name).stream()
+                        for t in tasks_to_migrate:
+                            db.collection("race_tasks").document(t.id).update({"category": new_c_name})
+                        st.rerun()
+                st.divider()
 
         with st.expander("➕ Add Category"):
             new_cat_name = st.text_input("New Category Name")
-            if st.button("Create"):
+            if st.button("Create Category"):
                 current_cats.append({"name": new_cat_name, "order": len(current_cats)})
                 save_categories(current_cats)
                 st.rerun()
@@ -136,15 +155,14 @@ with st.sidebar:
         st.divider()
         st.subheader("📝 Manage Tasks")
         
-        with st.expander("🔢 Move / 🗑️ Delete Tasks"):
+        with st.expander("🔢 Move / 📝 Edit / 🗑️ Delete"):
             sel_cat = st.selectbox("Select Category", [c['name'] for c in current_cats], key="manage_task_cat")
             tasks_stream = db.collection("race_tasks").where("category", "==", sel_cat).order_by("sort_order").stream()
             tasks = [t for t in tasks_stream]
             
             for i, t in enumerate(tasks):
                 td = t.to_dict()
-                col_t_name, col_t_up, col_t_down, col_t_del = st.columns([4, 1, 1, 1])
-                col_t_name.write(f"{td['title'][:15]}...")
+                col_t_up, col_t_down, col_t_del = st.columns([1, 1, 1])
                 
                 if col_t_up.button("🔼", key=f"t_up_{t.id}") and i > 0:
                     prev_t = tasks[i-1]
@@ -162,11 +180,18 @@ with st.sidebar:
                     db.collection("race_tasks").document(t.id).delete()
                     st.rerun()
 
+                # EDIT TASK TITLE
+                new_t_title = st.text_input("Edit Title:", value=td['title'], key=f"edit_t_{t.id}")
+                if new_t_title != td['title']:
+                    if st.button(f"Save New Title", key=f"save_t_{t.id}"):
+                        db.collection("race_tasks").document(t.id).update({"title": new_t_title})
+                        st.rerun()
+                st.divider()
+
         with st.expander("➕ Add Task"):
             t_cat = st.selectbox("Category", [c['name'] for c in current_cats], key="add_t_cat")
             t_title = st.text_input("Task Title")
             if st.button("Add Task"):
-                # Get count for last position
                 existing = db.collection("race_tasks").where("category", "==", t_cat).get()
                 db.collection("race_tasks").add({
                     "category": t_cat,
@@ -181,10 +206,10 @@ with st.sidebar:
         st.subheader("🚥 Live Status Control")
         for c in current_cats:
             c_data = get_cat_data(c['name'])
-            with st.expander(f"Edit {c['name']}"):
+            with st.expander(f"Edit {c['name']} Status"):
                 new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c['name']}")
                 new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"n_{c['name']}")
-                if st.button("Save", key=f"up_{c['name']}"):
+                if st.button("Save Status", key=f"up_{c['name']}"):
                     set_cat_status(c['name'], new_s, new_n)
                     st.rerun()
 
