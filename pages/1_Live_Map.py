@@ -14,19 +14,22 @@ else:
 
 st.set_page_config(page_title="Staff Live Map", page_icon="📍", layout="wide")
 
-# CSS for styling
+# CSS for a clean, full-width look
 st.markdown("""
     <style>
     .map-container {
         border: 3px solid black;
         border-radius: 25px;
         overflow: hidden;
-        margin-bottom: 20px;
+        margin-bottom: 30px;
+    }
+    .stDataFrame {
+        margin-top: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("📍 Unified Race Command Map")
+st.title("📍 Race Command: Full-Width Map View")
 
 # --- SIDEBAR: STAFF TRACKING ---
 with st.sidebar:
@@ -48,46 +51,43 @@ with st.sidebar:
             })
             st.success(f"Tracking active: {staff_name}")
         else:
-            st.warning("Waiting for GPS signal... Make sure location is enabled.")
+            st.warning("Searching for GPS... Ensure location is enabled on your phone.")
 
-# --- MAIN DISPLAY ---
-col1, col2 = st.columns([2, 1])
+# --- 1. COURSE OVERVIEW (CUSTOM GOOGLE MAP) ---
+st.subheader("🗺️ Course Overview & Key Points")
+st.markdown('<div class="map-container">', unsafe_allow_html=True)
+# Replace the URL below with your actual Google My Maps embed link
+st.components.v1.html('<iframe src="https://www.google.com/maps/d/u/0/embed?mid=YOUR_MAP_ID_HERE" width="100%" height="600" style="border:none;"></iframe>', height=600)
+st.markdown('</div>', unsafe_allow_html=True)
 
-with col1:
-    st.subheader("Course Overview (Custom Map)")
-    st.markdown('<div class="map-container">', unsafe_allow_html=True)
-    # Replace the URL below with your actual Google My Maps embed link
-    st.components.v1.html('<iframe src="https://www.google.com/maps/d/embed?mid=1UOQuxT6lSaKGXm2wmjVzeFwVuORY8Vk&hl=en&ehbc=2E312F" width="640" height="480"></iframe>', height=500)
-    st.markdown('</div>', unsafe_allow_html=True)
+st.divider()
 
-with col2:
-    @st.fragment(run_every=30)
-    def show_staff_list():
-        st.subheader("Active Personnel")
-        locations_ref = db.collection("staff_locations").stream()
-        loc_data = []
-        for doc in locations_ref:
-            d = doc.to_dict()
-            # CRITICAL FIX: Map needs 'latitude' and 'longitude' lowercase keys
+# --- 2. STAFF TRACKER (LIVE POSITIONS) ---
+@st.fragment(run_every=30)
+def show_staff_map():
+    st.subheader("🏃 Live Staff Positions")
+    locations_ref = db.collection("staff_locations").stream()
+    loc_data = []
+    
+    for doc in locations_ref:
+        d = doc.to_dict()
+        if "latitude" in d and "longitude" in d:
             loc_data.append({
                 "Staff": d["name"], 
-                "latitude": d.get("latitude"), 
-                "longitude": d.get("longitude")
+                "latitude": d["latitude"], 
+                "longitude": d["longitude"]
             })
+    
+    if loc_data:
+        df = pd.DataFrame(loc_data)
         
-        if loc_data:
-            df = pd.DataFrame(loc_data)
-            # Drop any rows that have missing GPS data to prevent errors
-            df = df.dropna(subset=['latitude', 'longitude'])
-            
-            if not df.empty:
-                # mini-map for staff clusters
-                st.map(df, size=20, color="#28a745", use_container_width=True)
-                # table for quick reference
-                st.dataframe(df[["Staff"]], use_container_width=True, hide_index=True)
-            else:
-                st.info("Staff connected, but no GPS coordinates received yet.")
-        else:
-            st.info("No staff active. Use the sidebar to check in.")
+        # Large map for better visibility
+        st.map(df, size=40, color="#28a745", use_container_width=True)
+        
+        # Reference list below the map
+        with st.expander("Show Personnel Coordinates List"):
+            st.dataframe(df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No staff currently tracking. Use the sidebar to begin.")
 
-    show_staff_list()
+show_staff_map()
