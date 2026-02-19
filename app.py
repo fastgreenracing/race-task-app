@@ -16,14 +16,16 @@ st.set_page_config(
 )
 
 # --- CSS FOR UI ---
-BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?auto=format&fit=crop&w=2070&q=80"
+BACKGROUND_IMAGE_URL = "https://photos.smugmug.com/Mountains-2-Beach-Marathons/2018-Clif-Bar-Mountains-to-Beach-Marathon-Half/M2B-2018-Full-Marathon/M2B-2018-Full-Marathon-The-Start/i-dfXFsF4/2/KhM2r3JQqVtWPLHJdSsTbZzbPRTQp8fjhcHzQ2rCN/X2/DHHolmes_180527_DH0114_M2B-X2.jpg"
 
 st.markdown(
     f"""
     <style>
+    /* FORCED PRIMARY COLOR TO GREEN */
     :root {{
         --primary-color: #28a745 !important;
     }}
+    
     .stApp {{
         background: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), 
                     url("{BACKGROUND_IMAGE_URL}");
@@ -46,6 +48,8 @@ st.markdown(
         margin-bottom: 30px;
         border-radius: 5px;
     }}
+    
+    /* TASK CARD STYLING */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -53,15 +57,21 @@ st.markdown(
         margin-bottom: 15px !important;
         background-color: rgba(255, 255, 255, 0.6);
     }}
+
+    /* CHECKBOX SCALE & COLOR LOCK */
     [data-testid="stCheckbox"] {{
         transform: scale(2.2);
         margin-left: 25px;
         margin-top: 10px;
     }}
+    
+    /* Ensure checkbox background is green when checked */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {{
         background-color: #28a745 !important;
         border-color: #28a745 !important;
     }}
+
+    /* Standard black border when unchecked */
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
     }}
@@ -70,21 +80,11 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title("🏃 Fast Green Racing: Live Tracker")
+st.title("Fast Green Racing: Live Tracker")
 
-# --- COURSE MAP SECTION ---
-# DROP YOUR URL BELOW (Line 88)
-map_url = "https://www.google.com/maps/d/embed?mid=YOUR_MAP_ID_HERE"
-
-with st.expander("📍 VIEW COURSE MAP & PERTINENT SPOTS", expanded=True):
-    st.components.v1.iframe(map_url, height=500, scrolling=True)
-
-# --- ADMIN SETTINGS & PERSISTENCE ---
+# --- ADMIN SETTINGS ---
 ADMIN_PASSWORD = "fastgreen2026" 
 TIMEZONE = "US/Pacific"
-
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
 
 def get_now():
     return datetime.now(pytz.timezone(TIMEZONE)).strftime("%I:%M %p")
@@ -118,24 +118,15 @@ def set_cat_status(cat_name, status, note=None):
 # --- SIDEBAR: ADMIN ---
 with st.sidebar:
     st.header("🔐 Access Control")
+    pwd = st.text_input("Admin Password", type="password")
+    is_admin = (pwd == ADMIN_PASSWORD)
+    st.session_state.admin_logged_in = is_admin
     
-    if not st.session_state.authenticated:
-        pwd = st.text_input("Admin Password", type="password")
-        if st.button("Login"):
-            if pwd == ADMIN_PASSWORD:
-                st.session_state.authenticated = True
-                st.rerun()
-            else:
-                st.error("Incorrect Password")
-    else:
-        st.success("Admin Mode Active")
-        if st.button("Logout"):
-            st.session_state.authenticated = False
-            st.rerun()
-        
+    if is_admin:
+        st.success("Admin Mode")
         current_cats = get_categories()
         
-        # 🚥 1. LIVE STATUS
+        # 1. LIVE STATUS
         st.divider()
         st.subheader("🚥 Live Status Control")
         for c in current_cats:
@@ -146,7 +137,7 @@ with st.sidebar:
                 if st.button("Save", key=f"sb_btn_{c['name']}"):
                     set_cat_status(c['name'], new_s, new_n); st.rerun()
 
-        # 📁 2. CATEGORY ADMIN
+        # 2. CATEGORY ADMIN
         st.divider()
         st.subheader("📁 Manage Categories")
         with st.expander("Move / Rename / Delete"):
@@ -163,13 +154,14 @@ with st.sidebar:
                     current_cats.pop(i); save_categories(current_cats); st.rerun()
                 
                 new_c_name = st.text_input("Rename:", value=cat['name'], key=f"ren_c_{i}")
-                if new_c_name != cat['name'] and st.button(f"Confirm Rename", key=f"cren_{i}"):
-                    old = cat['name']; cat['name'] = new_c_name; save_categories(current_cats)
-                    for t in db.collection("race_tasks").where("category", "==", old).stream():
-                        db.collection("race_tasks").document(t.id).update({"category": new_c_name})
-                    st.rerun()
+                if new_c_name != cat['name']:
+                    if st.button(f"Confirm Rename", key=f"cren_{i}"):
+                        old = cat['name']; cat['name'] = new_c_name; save_categories(current_cats)
+                        for t in db.collection("race_tasks").where("category", "==", old).stream():
+                            db.collection("race_tasks").document(t.id).update({"category": new_c_name})
+                        st.rerun()
 
-        # 📝 3. TASK ADMIN
+        # 3. TASK ADMIN
         st.divider()
         st.subheader("📝 Manage Tasks")
         with st.expander("Move / Edit / Delete Existing"):
@@ -186,6 +178,7 @@ with st.sidebar:
                     db.collection("race_tasks").document(tasks[i+1].id).update({"sort_order": i}); st.rerun()
                 if c_del.button("🗑️", key=f"tdel_{t.id}"):
                     db.collection("race_tasks").document(t.id).delete(); st.rerun()
+                
                 new_title = st.text_input("Edit Title:", value=td['title'], key=f"edt_{t.id}")
                 if st.button("Save Title", key=f"savt_{t.id}"):
                     db.collection("race_tasks").document(t.id).update({"title": new_title}); st.rerun()
@@ -197,37 +190,30 @@ with st.sidebar:
             if st.button("Add Task"):
                 db.collection("race_tasks").add({"category": nt_cat, "title": nt_title, "completed": False, "sort_order": 99}); st.rerun()
 
-        # 🗺️ 4. MAP MANAGEMENT
-        st.divider()
-        st.subheader("🗺️ Map Management")
-        if st.button("CLEAR ALL STAFF FROM MAP", type="primary", use_container_width=True):
-            staff_docs = db.collection("staff_locations").stream()
-            count = 0
-            for doc in staff_docs:
-                db.collection("staff_locations").document(doc.id).delete()
-                count += 1
-            st.warning(f"Map Reset: {count} staff records deleted.")
-            st.rerun()
-
 # --- MAIN DISPLAY ---
 @st.fragment(run_every=5)
 def show_tasks():
-    is_admin = st.session_state.authenticated
+    is_admin = st.session_state.get('admin_logged_in', False)
     categories = get_categories()
+    
     for cat_dict in categories:
         cat = cat_dict['name']
         st.markdown('<div class="bold-divider"></div>', unsafe_allow_html=True)
         c_data = get_cat_data(cat)
+        
         col_name, col_status_group = st.columns([7, 3])
         with col_name:
+            # CATEGORY HEADER: Pin removed, Bold & Underlined
             st.markdown(f"## <u>**{cat}**</u>", unsafe_allow_html=True)
         with col_status_group:
             is_go = c_data.get("completed", False)
             s_text = "GO" if is_go else "NO GO"
             s_color = "green" if is_go else "red"
             st.markdown(f'<div style="text-align: center;"><p style="font-weight: bold; font-size: 20px; margin-bottom: -5px;">STATUS</p><h2 style="color: {s_color}; font-size: 48px; font-weight: 900; margin: 0;">{s_text}</h2></div>', unsafe_allow_html=True)
+
         if c_data.get("note"):
             st.info(f"**Note:** {c_data['note']} \n\n *Updated: {c_data.get('timestamp')}*")
+        
         tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
         for task in tasks_query:
             td = task.to_dict()
