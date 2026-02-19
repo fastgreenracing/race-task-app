@@ -80,7 +80,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title("🏃 Fast Green Racing: Live Tracker")
+st.title("Fast Green Racing: Live Tracker")
 
 # --- ADMIN SETTINGS ---
 ADMIN_PASSWORD = "fastgreen2026" 
