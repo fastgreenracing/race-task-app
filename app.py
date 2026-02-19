@@ -31,31 +31,19 @@ st.markdown(
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
     }}
     
-    /* FIX FOR ADMIN SIDEBAR TOGGLE BOX */
-    [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {{
-        border: 2px solid black !important;
-        border-radius: 10px;
-        padding: 10px !important;
-    }}
-    
-    /* Ensure toggle and text fit inside the sidebar container */
-    [data-testid="stSidebar"] .stToggle {{
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 10px;
-        width: 100%;
-        overflow: hidden;
+    /* CLEANER SIDEBAR - Removed the restrictive black box that caused vertical text */
+    [data-testid="stSidebar"] [data-testid="stExpander"] {{
+        border: 1px solid #ddd !important;
+        border-radius: 8px !important;
     }}
     
     [data-testid="stSidebar"] .stToggle label p {{
-        font-size: 22px !important;
+        font-size: 18px !important;
         font-weight: bold !important;
-        color: #31333F !important;
-        margin: 0 !important;
+        color: #000 !important;
     }}
 
-    /* Standard Task Card Styling (User Side) */
+    /* User Side Task Card Styling */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -72,7 +60,6 @@ st.markdown(
         border: 3px solid black !important;
     }}
     
-    /* Status Light Style */
     .status-bulb {{
         width: 55px;
         height: 55px;
@@ -130,10 +117,8 @@ with st.sidebar:
         for c in cats:
             c_data = get_cat_data(c)
             with st.expander(f"Edit {c}"):
-                # Toggle box container for better layout
-                with st.container(border=True):
-                    new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
-                
+                # Removed the container border here to stop the text "squish"
+                new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
                 new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"n_{c}")
                 if st.button("Save", key=f"up_{c}"):
                     set_cat_status(c, new_s, new_n)
@@ -149,7 +134,7 @@ def show_tasks():
         st.divider()
         c_data = get_cat_data(cat)
         
-        col_name, col_status_group, col_bulb = st.columns([7, 1.5, 1.5])
+        col_name, col_status_group, col_bulb = st.columns([6.5, 2, 1.5])
         
         with col_name:
             st.header(f"📍 {cat}")
@@ -158,16 +143,17 @@ def show_tasks():
             is_go = c_data.get("completed", False)
             s_text = "GO" if is_go else "NO GO"
             s_color = "green" if is_go else "red"
+            # Centered STATUS vertically over GO/NO GO with zero custom HTML containers to avoid leaks
             st.markdown(f"""
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding-top: 5px;">
-                    <p style="margin-bottom: -5px; font-weight: bold; font-size: 18px; color: #333; text-transform: uppercase;">STATUS</p>
-                    <h2 style="color: {s_color}; margin: 0; font-weight: 900; line-height: 1;">{s_text}</h2>
+                <div style="text-align: center; width: 100%;">
+                    <p style="margin-bottom: -5px; font-weight: bold; font-size: 20px; color: #000; text-transform: uppercase;">STATUS</p>
+                    <h2 style="color: {s_color}; margin: 0; font-weight: 900; font-size: 36px; line-height: 1;">{s_text}</h2>
                 </div>
             """, unsafe_allow_html=True)
             
         with col_bulb:
             l_color = "#22c55e" if is_go else "#ef4444"
-            st.markdown(f'<div class="status-bulb" style="background-color: {l_color}; margin-top: 10px;"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="status-bulb" style="background-color: {l_color}; margin: auto;"></div>', unsafe_allow_html=True)
 
         if c_data.get("note"):
             st.info(f"**Note:** {c_data['note']} \n\n *Updated: {c_data.get('timestamp')}*")
