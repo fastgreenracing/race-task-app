@@ -1,9 +1,3 @@
-It looks like we are fighting a battle against Streamlit's "Auto-Code" detector. When Streamlit sees specific combinations of HTML and curly braces {} inside a single st.markdown block, it sometimes mistakenly formats it as a code block (the white box) and stops rendering the tags (the visible </div>).
-
-To kill this for good, I have separated the logic completely. We will build the HTML string first, then pass it to the renderer. I also added a markdown="span" wrapper which usually forces Streamlit to respect the HTML rather than trying to parse it as code.
-
-Full Fixed app.py
-Python
 import streamlit as st
 from google.cloud import firestore
 import json
