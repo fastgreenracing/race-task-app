@@ -1,7 +1,3 @@
-It sounds like the sidebar might be "caching" or hiding that section because of how the nested if is_admin: block is structured. To make it impossible to miss, I have moved the Map Management section to be its own top-level block within the Admin sidebar, and I added a clear red styling to the button so it stands out.
-
-Full Updated app.py
-Python
 import streamlit as st
 from google.cloud import firestore
 import json
