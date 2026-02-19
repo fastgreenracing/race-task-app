@@ -16,7 +16,7 @@ st.set_page_config(
 )
 
 # --- CSS FOR UI ---
-BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?auto=format&fit=crop&w=2070&q=80"
+BACKGROUND_IMAGE_URL = "https://photos.smugmug.com/Mountains-2-Beach-Marathons/2018-Clif-Bar-Mountains-to-Beach-Marathon-Half/M2B-2018-Full-Marathon/M2B-2018-Full-Marathon-The-Start/i-dfXFsF4/2/KhM2r3JQqVtWPLHJdSsTbZzbPRTQp8fjhcHzQ2rCN/X2/DHHolmes_180527_DH0114_M2B-X2.jpg"
 
 st.markdown(
     f"""
@@ -80,7 +80,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title("🏃 Fast Green Racing: Live Tracker")
+st.title("Fast Green Racing: Live Tracker")
 
 # --- ADMIN SETTINGS ---
 ADMIN_PASSWORD = "fastgreen2026" 
