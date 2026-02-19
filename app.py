@@ -30,24 +30,16 @@ st.markdown(
         margin-top: 2rem;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
     }}
-    
-    /* --- SIDEBAR TOGGLE FIX --- */
-    /* Target the sidebar toggle to shrink it and prevent vertical text */
-    [data-testid="stSidebar"] div.stToggle {{
-        zoom: 0.6; /* Shrink switch and text to 60% to fit one line */
-        border: 2px solid black !important;
-        padding: 10px !important;
-        border-radius: 10px !important;
-        background-color: white !important;
+    /* Bold Black Divider */
+    .bold-divider {{
+        border: none;
+        height: 5px;
+        background-color: black;
+        margin-top: 50px;
+        margin-bottom: 30px;
+        border-radius: 5px;
     }}
-    
-    [data-testid="stSidebar"] .stToggle label p {{
-        font-size: 20px !important;
-        font-weight: bold !important;
-        white-space: nowrap !important; /* Forces text to stay on one line */
-    }}
-
-    /* User Side Task Card Styling */
+    /* Standard Task Card Styling */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -63,17 +55,12 @@ st.markdown(
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
     }}
-    
+    /* Status Light Style */
     .status-bulb {{
         width: 55px;
         height: 55px;
         border-radius: 50%;
         border: 4px solid black;
-    }}
-    
-    h1 {{
-        color: #000000 !important;
-        font-family: 'Helvetica Neue', sans-serif;
     }}
     </style>
     """,
@@ -113,17 +100,13 @@ with st.sidebar:
     pwd = st.text_input("Admin Password", type="password")
     is_admin = (pwd == ADMIN_PASSWORD)
     st.session_state.admin_logged_in = is_admin
-    
     if is_admin:
         st.success("Admin Mode")
-        st.divider()
         cats = get_categories()
         for c in cats:
             c_data = get_cat_data(c)
             with st.expander(f"Edit {c}"):
-                # Toggle box: NO manual containers, CSS targets st.toggle directly
                 new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
-                
                 new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"n_{c}")
                 if st.button("Save", key=f"up_{c}"):
                     set_cat_status(c, new_s, new_n)
@@ -136,10 +119,12 @@ def show_tasks():
     categories = get_categories()
     
     for cat in categories:
-        st.divider()
+        # THE BIG DIVIDER
+        st.markdown('<div class="bold-divider"></div>', unsafe_allow_html=True)
+        
         c_data = get_cat_data(cat)
         
-        col_name, col_status_group, col_bulb = st.columns([6.5, 2, 1.5])
+        col_name, col_status_group, col_bulb = st.columns([7, 1.5, 1.5])
         
         with col_name:
             st.header(f"📍 {cat}")
@@ -150,8 +135,8 @@ def show_tasks():
             s_color = "green" if is_go else "red"
             st.markdown(f"""
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding-top: 5px;">
-                    <p style="margin-bottom: -5px; font-weight: bold; font-size: 20px; color: #000; text-transform: uppercase;">STATUS</p>
-                    <h2 style="color: {s_color}; margin: 0; font-weight: 900; font-size: 36px; line-height: 1;">{s_text}</h2>
+                    <p style="margin-bottom: -5px; font-weight: bold; font-size: 18px; color: #333; text-transform: uppercase;">STATUS</p>
+                    <h2 style="color: {s_color}; margin: 0; font-weight: 900; line-height: 1;">{s_text}</h2>
                 </div>
             """, unsafe_allow_html=True)
             
