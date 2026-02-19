@@ -57,7 +57,7 @@ with col1:
     st.subheader("Course Overview (Custom Map)")
     st.markdown('<div class="map-container">', unsafe_allow_html=True)
     # Replace the URL below with your actual Google My Maps embed link
-    st.components.v1.html('<iframe src="https://www.google.com/maps/d/u/0/embed?mid=YOUR_MAP_ID_HERE" width="100%" height="500" style="border:none;"></iframe>', height=500)
+    st.components.v1.html('<iframe src="https://www.google.com/maps/d/embed?mid=1UOQuxT6lSaKGXm2wmjVzeFwVuORY8Vk&hl=en&ehbc=2E312F" width="640" height="480"></iframe>', height=500)
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
