@@ -21,11 +21,9 @@ BACKGROUND_IMAGE_URL = "https://photos.smugmug.com/Mountains-2-Beach-Marathons/2
 st.markdown(
     f"""
     <style>
-    /* FORCED PRIMARY COLOR TO GREEN */
     :root {{
         --primary-color: #28a745 !important;
     }}
-    
     .stApp {{
         background: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), 
                     url("{BACKGROUND_IMAGE_URL}");
@@ -48,8 +46,6 @@ st.markdown(
         margin-bottom: 30px;
         border-radius: 5px;
     }}
-    
-    /* TASK CARD STYLING */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -57,21 +53,15 @@ st.markdown(
         margin-bottom: 15px !important;
         background-color: rgba(255, 255, 255, 0.6);
     }}
-
-    /* CHECKBOX SCALE & COLOR LOCK */
     [data-testid="stCheckbox"] {{
         transform: scale(2.2);
         margin-left: 25px;
         margin-top: 10px;
     }}
-    
-    /* Ensure checkbox background is green when checked */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {{
         background-color: #28a745 !important;
         border-color: #28a745 !important;
     }}
-
-    /* Standard black border when unchecked */
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
     }}
@@ -82,9 +72,13 @@ st.markdown(
 
 st.title("Fast Green Racing: Live Tracker")
 
-# --- ADMIN SETTINGS ---
+# --- ADMIN SETTINGS & PERSISTENCE ---
 ADMIN_PASSWORD = "fastgreen2026" 
 TIMEZONE = "US/Pacific"
+
+# Initialize Session State for Persistent Login
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
 def get_now():
     return datetime.now(pytz.timezone(TIMEZONE)).strftime("%I:%M %p")
@@ -118,12 +112,21 @@ def set_cat_status(cat_name, status, note=None):
 # --- SIDEBAR: ADMIN ---
 with st.sidebar:
     st.header("🔐 Access Control")
-    pwd = st.text_input("Admin Password", type="password")
-    is_admin = (pwd == ADMIN_PASSWORD)
-    st.session_state.admin_logged_in = is_admin
     
-    if is_admin:
-        st.success("Admin Mode")
+    if not st.session_state.authenticated:
+        pwd = st.text_input("Admin Password", type="password")
+        if st.button("Login"):
+            if pwd == ADMIN_PASSWORD:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Incorrect Password")
+    else:
+        st.success("Admin Mode Active")
+        if st.button("Logout"):
+            st.session_state.authenticated = False
+            st.rerun()
+        
         current_cats = get_categories()
         
         # 1. LIVE STATUS
@@ -190,10 +193,22 @@ with st.sidebar:
             if st.button("Add Task"):
                 db.collection("race_tasks").add({"category": nt_cat, "title": nt_title, "completed": False, "sort_order": 99}); st.rerun()
 
+        # 4. MAP MANAGEMENT
+        st.divider()
+        st.subheader("🗺️ Map Management")
+        if st.button("CLEAR ALL STAFF FROM MAP", type="primary", use_container_width=True):
+            staff_docs = db.collection("staff_locations").stream()
+            count = 0
+            for doc in staff_docs:
+                db.collection("staff_locations").document(doc.id).delete()
+                count += 1
+            st.warning(f"Map Reset: {count} staff records deleted.")
+            st.rerun()
+
 # --- MAIN DISPLAY ---
 @st.fragment(run_every=5)
 def show_tasks():
-    is_admin = st.session_state.get('admin_logged_in', False)
+    is_admin = st.session_state.authenticated
     categories = get_categories()
     
     for cat_dict in categories:
@@ -203,7 +218,6 @@ def show_tasks():
         
         col_name, col_status_group = st.columns([7, 3])
         with col_name:
-            # CATEGORY HEADER: Pin removed, Bold & Underlined
             st.markdown(f"## <u>**{cat}**</u>", unsafe_allow_html=True)
         with col_status_group:
             is_go = c_data.get("completed", False)
