@@ -38,7 +38,8 @@ st.markdown(
         margin-bottom: 30px;
         border-radius: 5px;
     }}
-    /* User Side Task Card Styling */
+    
+    /* TASK CARD STYLING */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -46,11 +47,21 @@ st.markdown(
         margin-bottom: 15px !important;
         background-color: rgba(255, 255, 255, 0.6);
     }}
+
+    /* CHECKBOX COLOR TRANSFORMATION (RED TO GREEN) */
     [data-testid="stCheckbox"] {{
         transform: scale(2.2);
         margin-left: 25px;
         margin-top: 10px;
     }}
+    
+    /* Target the checkbox background when checked */
+    [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {{
+        background-color: #28a745 !important; /* Fast Green */
+        border-color: #28a745 !important;
+    }}
+
+    /* Ensure the border remains thick and black when unchecked */
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
     }}
@@ -103,14 +114,12 @@ with st.sidebar:
     
     if is_admin:
         st.success("Admin Mode")
-        # PULL FRESH CATEGORIES
         current_cats = get_categories()
         
         # --- LIVE STATUS CONTROL ---
         st.divider()
         st.subheader("🚥 Live Status Control")
         for c in current_cats:
-            # FORCE FRESH DATA PULL FOR SIDEBAR SYNC
             c_data = get_cat_data(c['name'])
             with st.expander(f"Status: {c['name']}"):
                 new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"sidebar_t_{c['name']}")
@@ -119,11 +128,10 @@ with st.sidebar:
                     set_cat_status(c['name'], new_s, new_n)
                     st.rerun()
 
-        # --- MANAGEMENT CONTROLS ---
+        # --- REORDERING / MANAGEMENT ---
         st.divider()
-        st.subheader("📁 Category / Task Admin")
+        st.subheader("📁 Structure Admin")
         with st.expander("Move / Rename / Delete"):
-            # (Management logic remains the same)
             for i, cat in enumerate(current_cats):
                 col_name, col_up, col_down = st.columns([6, 1, 1])
                 col_name.write(f"**{cat['name']}**")
@@ -157,17 +165,15 @@ def show_tasks():
         if c_data.get("note"):
             st.info(f"**Note:** {c_data['note']} \n\n *Updated: {c_data.get('timestamp')}*")
         
-        # PULL TASKS FROM FIRESTORE
         tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
         for task in tasks_query:
             td = task.to_dict()
             t_cols = st.columns([1.5, 8.5])
             with t_cols[0]:
-                # Updated Checkbox Key to ensure it re-renders when data changes
+                # Dynamic key ensures re-render on database update
                 check = st.checkbox("", value=td.get("completed", False), key=f"w_{task.id}_{td.get('completed')}", disabled=(td.get("completed") and not is_admin), label_visibility="collapsed")
                 if check != td.get("completed"):
                     db.collection("race_tasks").document(task.id).update({"completed": check})
-                    # This rerun ensures the sidebar catch up immediately
                     st.rerun()
             with t_cols[1]:
                 icon = '✅ ' if td.get("completed") else ''
