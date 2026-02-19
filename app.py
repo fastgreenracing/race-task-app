@@ -75,11 +75,11 @@ def get_categories():
 def get_cat_data(cat_name):
     safe_id = cat_name.replace("/", "_").replace(" ", "_")
     doc = db.collection("settings").document(f"status_{safe_id}").get()
-    return doc.to_dict() if doc.exists else {"completed": False, "note": "", "timestamp": "", "show_start_msg": False}
+    return doc.to_dict() if doc.exists else {"completed": False, "note": "", "timestamp": ""}
 
-def set_cat_status(cat_name, status, note=None, show_start=False):
+def set_cat_status(cat_name, status, note=None):
     safe_id = cat_name.replace("/", "_").replace(" ", "_")
-    data = {"completed": status, "show_start_msg": show_start}
+    data = {"completed": status}
     if note is not None:
         data["note"] = note
         data["timestamp"] = get_now() if note else ""
@@ -98,10 +98,10 @@ with st.sidebar:
             c_data = get_cat_data(c)
             with st.expander(f"Edit {c}"):
                 new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
-                new_start = st.radio("Start Msg?", ["Yes", "No"], index=0 if c_data.get("show_start_msg") else 1, horizontal=True, key=f"s_{c}")
+                # REMOVED: Start Msg radio buttons
                 new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"n_{c}")
                 if st.button("Save", key=f"up_{c}"):
-                    set_cat_status(c, new_s, new_n, show_start=(new_start == "Yes"))
+                    set_cat_status(c, new_s, new_n)
                     st.rerun()
 
 # --- 4. MAIN DISPLAY ---
@@ -135,8 +135,6 @@ def show_tasks():
         with col_bulb:
             l_color = "#22c55e" if is_go else "#ef4444"
             st.markdown(f'<div class="status-bulb" style="background-color: {l_color}; margin-top: 10px;"></div>', unsafe_allow_html=True)
-            if c_data.get("show_start_msg"):
-                st.write("**Go ahead and start. See note.**")
 
         # Status Note
         if c_data.get("note"):
