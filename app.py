@@ -11,29 +11,38 @@ db = firestore.Client.from_service_account_info(key_dict)
 st.set_page_config(page_title="Race Logistics", page_icon="🏃", layout="wide")
 
 # --- CUSTOM BACKGROUND & THEMING ---
-# Replace this URL with your preferred marathon photo link
-BACKGROUND_IMAGE_URL = "https://photos.smugmug.com/Mountains-2-Beach-Marathons/2019-Mountains-to-Beach-Marathon-and-Half/M2B-2019-Full-Marathon/M2B-2019-Full-Marathon-The-Start-Mile-6/i-VWkXxgW/4/K89dGgVPwJt2cjM6q2g2NPNPVH396kP9KCr4vX8vM/X2/DHHolmes_190526_DH0784_M2B-X2.jpg"
+BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?auto=format&fit=crop&w=2070&q=80"
 
 st.markdown(
     f"""
     <style>
     .stApp {{
-        background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.5)), 
+        background: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), 
                     url("{BACKGROUND_IMAGE_URL}");
         background-attachment: fixed;
         background-size: cover;
         background-position: center;
     }}
-    /* Main Glassmorphism Container */
+    /* Main Container */
     .main .block-container {{
-        background-color: rgba(255, 255, 255, 0.92); 
+        background-color: rgba(255, 255, 255, 0.95); 
         padding: 3rem;
         border-radius: 25px;
         margin-top: 2rem;
         margin-bottom: 2rem;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
     }}
+    
+    /* ENLARGE CHECKBOXES AND OUTLINE */
+    [data-testid="stCheckbox"] {{
+        transform: scale(1.8);
+        margin-left: 5px;
+    }}
+    [data-testid="stCheckbox"] div {{
+        border: 2px solid black !important;
+        border-radius: 4px;
+    }}
+    
     h1 {{
         color: #000000 !important;
         font-family: 'Helvetica Neue', sans-serif;
@@ -52,12 +61,10 @@ TIMEZONE = "US/Pacific"
 def get_now():
     return datetime.now(pytz.timezone(TIMEZONE)).strftime("%I:%M %p")
 
-# --- 2. DATA FUNCTIONS ---
+# --- DATA FUNCTIONS ---
 def get_categories():
     cat_ref = db.collection("settings").document("categories").get()
-    if cat_ref.exists:
-        return cat_ref.to_dict().get("list", ["Transportation", "Course & Traffic", "Vendors", "Finish Line"])
-    return ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
+    return cat_ref.to_dict().get("list", ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]) if cat_ref.exists else ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
 
 def get_cat_data(cat_name):
     safe_id = cat_name.replace("/", "_").replace(" ", "_")
@@ -72,18 +79,7 @@ def set_cat_status(cat_name, status, note=None):
         data["timestamp"] = get_now() if note else ""
     db.collection("settings").document(f"status_{safe_id}").set(data, merge=True)
 
-def update_task_status(doc_id, new_status):
-    db.collection("race_tasks").document(doc_id).update({"completed": new_status})
-
-def move_task(task_id, category, current_order, direction):
-    target_order = current_order + direction
-    query = db.collection("race_tasks").where("category", "==", category).where("sort_order", "==", target_order).limit(1).get()
-    if query:
-        target_doc = query[0]
-        db.collection("race_tasks").document(task_id).update({"sort_order": target_order})
-        db.collection("race_tasks").document(target_doc.id).update({"sort_order": current_order})
-
-# --- 3. SIDEBAR: ACCESS CONTROL ---
+# --- SIDEBAR: ACCESS CONTROL ---
 with st.sidebar:
     st.header("🔐 Access Control")
     pwd = st.text_input("Admin Password", type="password")
@@ -116,7 +112,7 @@ with st.sidebar:
                 })
                 st.rerun()
 
-# --- 4. MAIN UI DISPLAY ---
+# --- MAIN UI DISPLAY ---
 @st.fragment(run_every=5)
 def show_tasks():
     is_admin = st.session_state.get('admin_logged_in', False)
@@ -128,25 +124,22 @@ def show_tasks():
         c_data = get_cat_data(cat)
         light_color = "#22c55e" if c_data.get("completed") else "#ef4444"
         
-        # Header Layout: Large Category + Status Circle on Right
         st.markdown(
             f"""
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                <h1 style="font-size: 36px; margin: 0;">📍 {cat}</h1>
-                <div style="width: 45px; height: 45px; background-color: {light_color}; border-radius: 50%; border: 3px solid #333;"></div>
+                <h1 style="font-size: 38px; margin: 0;">📍 {cat}</h1>
+                <div style="width: 55px; height: 55px; background-color: {light_color}; border-radius: 50%; border: 4px solid #000;"></div>
             </div>
             """, unsafe_allow_html=True
         )
         
         if c_data.get("note"):
-            st.markdown(f"**Status Note:** {c_data['note']} | <small>Last Updated: {c_data.get('timestamp')}</small>", unsafe_allow_html=True)
-            st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background-color:#e1f5fe; padding:10px; border-radius:10px; border-left: 5px solid #03a9f4; margin-bottom:20px;'><strong>Status Note:</strong> {c_data['note']} | <small>Updated: {c_data.get('timestamp')}</small></div>", unsafe_allow_html=True)
         
         try:
             tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
             tasks_list = list(tasks_query)
         except Exception:
-            st.warning("Database indexing... wait 1 min.")
             tasks_list = []
         
         for index, task in enumerate(tasks_list):
@@ -156,29 +149,35 @@ def show_tasks():
             current_order = td.get("sort_order", index)
             
             unique_key = f"w_{task_id}_{db_status}_{is_admin}"
-            bg_color = "rgba(220, 252, 231, 0.95)" if db_status else "rgba(254, 226, 226, 0.95)"
+            bg_color = "rgba(220, 252, 231, 1.0)" if db_status else "rgba(254, 226, 226, 1.0)"
             
-            st.markdown(f"""<div style="background-color: {bg_color}; border: 2px solid #333; padding: 20px; border-radius: 12px; margin-bottom: 5px; color: black;">""", unsafe_allow_html=True)
+            st.markdown(f"""<div style="background-color: {bg_color}; border: 2.5px solid black; padding: 25px; border-radius: 12px; margin-bottom: 8px; color: black;">""", unsafe_allow_html=True)
             
-            cols = st.columns([0.6, 0.8, 6.6, 2]) if is_admin else st.columns([1, 9])
+            cols = st.columns([0.8, 0.8, 6.4, 2]) if is_admin else st.columns([1.2, 8.8])
 
             with cols[0]:
                 check_val = st.checkbox("", value=db_status, key=unique_key, disabled=(db_status and not is_admin), label_visibility="collapsed")
                 if check_val != db_status:
-                    update_task_status(task_id, check_val); st.rerun()
+                    db.collection("race_tasks").document(task_id).update({"completed": check_val}); st.rerun()
             
             if is_admin:
                 with cols[1]:
                     u, d = st.columns(2)
                     if index > 0 and u.button("▲", key=f"u_{task_id}"):
-                        move_task(task_id, cat, current_order, -1); st.rerun()
+                        target_order = current_order - 1
+                        q = db.collection("race_tasks").where("category", "==", cat).where("sort_order", "==", target_order).limit(1).get()
+                        if q: db.collection("race_tasks").document(q[0].id).update({"sort_order": current_order})
+                        db.collection("race_tasks").document(task_id).update({"sort_order": target_order}); st.rerun()
                     if index < len(tasks_list) - 1 and d.button("▼", key=f"d_{task_id}"):
-                        move_task(task_id, cat, current_order, 1); st.rerun()
+                        target_order = current_order + 1
+                        q = db.collection("race_tasks").where("category", "==", cat).where("sort_order", "==", target_order).limit(1).get()
+                        if q: db.collection("race_tasks").document(q[0].id).update({"sort_order": current_order})
+                        db.collection("race_tasks").document(task_id).update({"sort_order": target_order}); st.rerun()
 
             text_col = cols[2] if is_admin else cols[1]
             with text_col:
                 icon = '✅' if db_status else '⏳'
-                st.markdown(f"<span style='font-size: 24px; font-weight: bold;'>{icon} {td['title']}</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='font-size: 26px; font-weight: bold;'>{icon} {td['title']}</span>", unsafe_allow_html=True)
                 if td.get("notes"): st.info(f"📝 {td['notes']}")
                 
                 if is_admin:
@@ -197,6 +196,6 @@ def show_tasks():
             
             st.markdown("</div>", unsafe_allow_html=True)
             if index < len(tasks_list) - 1:
-                st.markdown("<hr style='border: 0.5px dashed #bbb; margin: 10px auto; width: 90%;'>", unsafe_allow_html=True)
+                st.markdown("<hr style='border: 1px solid #000; margin: 10px auto; width: 95%;'>", unsafe_allow_html=True)
 
 show_tasks()
