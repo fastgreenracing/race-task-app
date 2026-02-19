@@ -94,7 +94,7 @@ def set_cat_status(cat_name, status, note=None):
         data["timestamp"] = get_now() if note else ""
     db.collection("settings").document(f"status_{safe_id}").set(data, merge=True)
 
-# --- SIDEBAR: CATEGORY & TASK MANAGEMENT ---
+# --- SIDEBAR: ADMIN CONTROLS ---
 with st.sidebar:
     st.header("🔐 Access Control")
     pwd = st.text_input("Admin Password", type="password")
@@ -105,10 +105,23 @@ with st.sidebar:
         st.success("Admin Mode")
         current_cats = get_categories()
         
+        # --- LIVE STATUS CONTROL (BACK IN SIDEBAR) ---
+        st.divider()
+        st.subheader("🚥 Live Status Control")
+        for c in current_cats:
+            # Explicitly fetch fresh data for each toggle
+            c_data = get_cat_data(c['name'])
+            with st.expander(f"Status: {c['name']}"):
+                new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"sidebar_t_{c['name']}")
+                new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"sidebar_n_{c['name']}")
+                if st.button("Save Changes", key=f"sidebar_btn_{c['name']}"):
+                    set_cat_status(c['name'], new_s, new_n)
+                    st.rerun()
+
         # --- STRUCTURE MANAGEMENT ---
         st.divider()
         st.subheader("📁 Manage Categories")
-        with st.expander("🔢 Move / 📝 Rename / 🗑️ Delete"):
+        with st.expander("🔢 Reorder / 📝 Rename / 🗑️ Delete"):
             for i, cat in enumerate(current_cats):
                 col_name, col_up, col_down, col_del = st.columns([4, 1, 1, 1])
                 col_name.write(f"**{cat['name']}**")
@@ -121,7 +134,7 @@ with st.sidebar:
                 if col_del.button("🗑️", key=f"cat_del_{i}"):
                     current_cats.pop(i); save_categories(current_cats); st.rerun()
                 
-                new_c_name = st.text_input("Rename:", value=cat['name'], key=f"ren_c_{i}")
+                new_c_name = st.text_input("Rename to:", value=cat['name'], key=f"ren_c_{i}")
                 if new_c_name != cat['name']:
                     if st.button(f"Confirm Rename", key=f"conf_ren_{i}"):
                         old = cat['name']; cat['name'] = new_c_name; save_categories(current_cats)
@@ -139,7 +152,7 @@ with st.sidebar:
                 db.collection("race_tasks").add({"category": t_cat, "title": t_title, "completed": False, "sort_order": len(existing)})
                 st.rerun()
 
-# --- MAIN DISPLAY (AUTO-REFRESHING) ---
+# --- MAIN DISPLAY ---
 @st.fragment(run_every=5)
 def show_tasks():
     is_admin = st.session_state.get('admin_logged_in', False)
@@ -153,14 +166,6 @@ def show_tasks():
         col_name, col_status_group = st.columns([7, 3])
         with col_name:
             st.header(f"📍 {cat}")
-            # ADMIN ONLY: Live Status Toggle within the refreshing fragment
-            if is_admin:
-                new_s = st.toggle("Category Ready (GO)", value=c_data.get("completed", False), key=f"live_t_{cat}")
-                new_n = st.text_input("Status Note", value=c_data.get("note", ""), key=f"live_n_{cat}")
-                if st.button("Update Status", key=f"live_btn_{cat}"):
-                    set_cat_status(cat, new_s, new_n)
-                    st.rerun()
-
         with col_status_group:
             is_go = c_data.get("completed", False)
             s_text = "GO" if is_go else "NO GO"
@@ -178,7 +183,6 @@ def show_tasks():
                 check = st.checkbox("", value=td.get("completed", False), key=f"w_{task.id}", disabled=(td.get("completed") and not is_admin), label_visibility="collapsed")
                 if check != td.get("completed"):
                     db.collection("race_tasks").document(task.id).update({"completed": check})
-                    # No rerun needed here because fragment handles it
             with t_cols[1]:
                 icon = '✅ ' if td.get("completed") else ''
                 st.markdown(f"### {icon}{td['title']}")
