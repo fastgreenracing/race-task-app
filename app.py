@@ -48,20 +48,20 @@ st.markdown(
         background-color: rgba(255, 255, 255, 0.6);
     }}
 
-    /* CHECKBOX COLOR TRANSFORMATION (RED TO GREEN) */
+    /* CHECKBOX SCALING & STYLE */
     [data-testid="stCheckbox"] {{
         transform: scale(2.2);
         margin-left: 25px;
         margin-top: 10px;
     }}
     
-    /* Target the checkbox background when checked */
+    /* Force checkbox to turn green when checked */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {{
-        background-color: #28a745 !important; /* Fast Green */
+        background-color: #28a745 !important;
         border-color: #28a745 !important;
     }}
 
-    /* Ensure the border remains thick and black when unchecked */
+    /* Standard border when unchecked */
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
     }}
@@ -116,7 +116,6 @@ with st.sidebar:
         st.success("Admin Mode")
         current_cats = get_categories()
         
-        # --- LIVE STATUS CONTROL ---
         st.divider()
         st.subheader("🚥 Live Status Control")
         for c in current_cats:
@@ -128,7 +127,6 @@ with st.sidebar:
                     set_cat_status(c['name'], new_s, new_n)
                     st.rerun()
 
-        # --- REORDERING / MANAGEMENT ---
         st.divider()
         st.subheader("📁 Structure Admin")
         with st.expander("Move / Rename / Delete"):
@@ -170,13 +168,12 @@ def show_tasks():
             td = task.to_dict()
             t_cols = st.columns([1.5, 8.5])
             with t_cols[0]:
-                # Dynamic key ensures re-render on database update
                 check = st.checkbox("", value=td.get("completed", False), key=f"w_{task.id}_{td.get('completed')}", disabled=(td.get("completed") and not is_admin), label_visibility="collapsed")
                 if check != td.get("completed"):
                     db.collection("race_tasks").document(task.id).update({"completed": check})
                     st.rerun()
             with t_cols[1]:
-                icon = '✅ ' if td.get("completed") else ''
-                st.markdown(f"### {icon}{td['title']}")
+                # REMOVED the redundant icon logic here
+                st.markdown(f"### {td['title']}")
 
 show_tasks()
