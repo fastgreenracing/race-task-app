@@ -8,7 +8,6 @@ import pytz
 key_dict = json.loads(st.secrets["textkey"])
 db = firestore.Client.from_service_account_info(key_dict)
 
-# FORCED THEME COLOR TO GREEN
 st.set_page_config(page_title="Race Logistics", page_icon="🏃", layout="wide")
 
 # --- CSS FOR UI ---
@@ -17,9 +16,9 @@ BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac91
 st.markdown(
     f"""
     <style>
-    /* FORCE THE ENTIRE APP THEME TO GREEN */
+    /* GLOBAL THEME OVERRIDE - FORCES ALL PRIMARY ELEMENTS TO GREEN */
     :root {{
-        --primary-color: #28a745;
+        --primary-color: #28a745 !important;
     }}
     
     .stApp {{
@@ -54,25 +53,26 @@ st.markdown(
         background-color: rgba(255, 255, 255, 0.6);
     }}
 
-    /* CHECKBOX SCALE & FORCED GREEN STATE */
+    /* CHECKBOX SCALE & COLOR LOCK */
     [data-testid="stCheckbox"] {{
         transform: scale(2.2);
         margin-left: 25px;
         margin-top: 10px;
     }}
     
-    /* This targets the background of the checkbox specifically when checked */
+    /* Force the box background to Green when checked */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {{
         background-color: #28a745 !important;
         border-color: #28a745 !important;
     }}
     
-    /* This ensures the checkmark icon inside is white on green background */
+    /* Force the checkmark itself to be white (eliminates any red/orange default) */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] svg {{
         fill: white !important;
+        color: white !important;
     }}
 
-    /* Standard border when unchecked remains black and thick */
+    /* Standard border remains black for high contrast */
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
     }}
@@ -179,7 +179,7 @@ def show_tasks():
             td = task.to_dict()
             t_cols = st.columns([1.5, 8.5])
             with t_cols[0]:
-                # Dynamic key and rerun logic to ensure both sides see green instantly
+                # Using current status in key to force correct color re-render
                 check = st.checkbox("", value=td.get("completed", False), key=f"w_{task.id}_{td.get('completed')}", disabled=(td.get("completed") and not is_admin), label_visibility="collapsed")
                 if check != td.get("completed"):
                     db.collection("race_tasks").document(task.id).update({"completed": check})
