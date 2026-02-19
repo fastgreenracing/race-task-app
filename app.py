@@ -8,7 +8,12 @@ import pytz
 key_dict = json.loads(st.secrets["textkey"])
 db = firestore.Client.from_service_account_info(key_dict)
 
-st.set_page_config(page_title="Race Logistics", page_icon="🏃", layout="wide")
+# FORCED THEME CONFIGURATION
+st.set_page_config(
+    page_title="Race Logistics", 
+    page_icon="🏃", 
+    layout="wide"
+)
 
 # --- CSS FOR UI ---
 BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?auto=format&fit=crop&w=2070&q=80"
@@ -16,11 +21,13 @@ BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac91
 st.markdown(
     f"""
     <style>
-    /* GLOBAL THEME OVERRIDE */
-    :root {{
-        --primary-color: #28a745 !important;
+    /* NUCLEAR OPTION: Hue-Rotate filter */
+    /* This shifts red (0deg) to green (~120deg) for all checked boxes */
+    [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {{
+        filter: hue-rotate(260deg) saturate(200%) !important;
+        background-color: #28a745 !important;
     }}
-    
+
     .stApp {{
         background: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), 
                     url("{BACKGROUND_IMAGE_URL}");
@@ -44,7 +51,6 @@ st.markdown(
         border-radius: 5px;
     }}
     
-    /* TASK CARD STYLING */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -53,31 +59,13 @@ st.markdown(
         background-color: rgba(255, 255, 255, 0.6);
     }}
 
-    /* CHECKBOX SCALE & COLOR LOCK */
     [data-testid="stCheckbox"] {{
         transform: scale(2.2);
         margin-left: 25px;
         margin-top: 10px;
     }}
     
-    /* TARGETING THE CHECKBOX BACKGROUND TO KILL THE RED */
-    [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {{
-        background-color: #28a745 !important;
-        border-color: #28a745 !important;
-    }}
-
-    /* TARGETING THE INNER ICON CONTAINER */
-    [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] > div {{
-        background-color: #28a745 !important;
-    }}
-    
-    /* ENSURE THE CHECKMARK SVG IS WHITE */
-    [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] svg {{
-        fill: white !important;
-        color: white !important;
-    }}
-
-    /* Standard border remains black for high contrast when unchecked */
+    /* Standard border remains black when unchecked */
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
     }}
