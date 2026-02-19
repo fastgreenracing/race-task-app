@@ -35,19 +35,17 @@ st.markdown(
     
     /* ENLARGE CHECKBOXES AND BOLD OUTLINE */
     [data-testid="stCheckbox"] {{
-        transform: scale(2.2); /* Increased from 1.8 to 2.2 */
+        transform: scale(2.2);
         margin-left: 25px;
         margin-top: 10px;
     }}
     
-    /* Extra thick black border for high visibility */
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
         background-color: white !important;
         box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
     }}
 
-    /* Remove the default Streamlit focus/selection lines */
     [data-testid="stCheckbox"] div {{
         border: none !important;
     }}
@@ -80,11 +78,11 @@ def get_categories():
 def get_cat_data(cat_name):
     safe_id = cat_name.replace("/", "_").replace(" ", "_")
     doc = db.collection("settings").document(f"status_{safe_id}").get()
-    return doc.to_dict() if doc.exists else {"completed": False, "note": "", "timestamp": ""}
+    return doc.to_dict() if doc.exists else {"completed": False, "note": "", "timestamp": "", "show_start_msg": False}
 
-def set_cat_status(cat_name, status, note=None):
+def set_cat_status(cat_name, status, note=None, show_start=False):
     safe_id = cat_name.replace("/", "_").replace(" ", "_")
-    data = {"completed": status}
+    data = {"completed": status, "show_start_msg": show_start}
     if note is not None:
         data["note"] = note
         data["timestamp"] = get_now() if note else ""
@@ -92,14 +90,6 @@ def set_cat_status(cat_name, status, note=None):
 
 def update_task_status(doc_id, new_status):
     db.collection("race_tasks").document(doc_id).update({"completed": new_status})
-
-def move_task(task_id, category, current_order, direction):
-    target_order = current_order + direction
-    query = db.collection("race_tasks").where("category", "==", category).where("sort_order", "==", target_order).limit(1).get()
-    if query:
-        target_doc = query[0]
-        db.collection("race_tasks").document(task_id).update({"sort_order": target_order})
-        db.collection("race_tasks").document(target_doc.id).update({"sort_order": current_order})
 
 # --- 3. SIDEBAR: ACCESS CONTROL ---
 with st.sidebar:
@@ -116,23 +106,14 @@ with st.sidebar:
         for c in cats:
             c_data = get_cat_data(c)
             with st.expander(f"Edit {c}"):
-                new_s = st.toggle("Ready Status", value=c_data.get("completed", False), key=f"t_{c}")
+                new_s = st.toggle("Ready Status (GO/NO-GO)", value=c_data.get("completed", False), key=f"t_{c}")
+                new_start = st.radio(f"Show 'Go ahead and start'?", ["Yes", "No"], 
+                                     index=0 if c_data.get("show_start_msg", False) else 1, 
+                                     horizontal=True, key=f"start_msg_{c}")
                 new_n = st.text_input("Category Note", value=c_data.get("note", ""), key=f"n_{c}")
                 if st.button("Update Category", key=f"up_{c}"):
-                    set_cat_status(c, new_s, new_n)
+                    set_cat_status(c, new_s, new_n, show_start=(new_start == "Yes"))
                     st.rerun()
-        st.divider()
-        st.subheader("➕ Add New Task")
-        new_title = st.text_input("Task Description")
-        new_cat = st.selectbox("Assign to Category", cats)
-        if st.button("Add Task", use_container_width=True):
-            if new_title:
-                existing = db.collection("race_tasks").where("category", "==", new_cat).get()
-                db.collection("race_tasks").add({
-                    "title": new_title, "category": new_cat, "completed": False, 
-                    "notes": "", "sort_order": len(existing)
-                })
-                st.rerun()
 
 # --- 4. MAIN UI DISPLAY ---
 @st.fragment(run_every=5)
@@ -144,16 +125,33 @@ def show_tasks():
         st.markdown("<hr style='border: 2px solid #333; margin-top: 40px; margin-bottom: 20px;'>", unsafe_allow_html=True)
         
         c_data = get_cat_data(cat)
-        light_color = "#22c55e" if c_data.get("completed") else "#ef4444"
+        is_go = c_data.get("completed", False)
+        light_color = "#22c55e" if is_go else "#ef4444"
+        status_text = "GO" if is_go else "NO GO"
+        status_text_color = "#166534" if is_go else "#991b1b" # Darker green/red for text readability
         
-        st.markdown(
-            f"""
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-                <h1 style="font-size: 38px; margin: 0;">📍 {cat}</h1>
-                <div style="width: 55px; height: 55px; background-color: {light_color}; border-radius: 50%; border: 4px solid #000;"></div>
-            </div>
-            """, unsafe_allow_html=True
-        )
+        # Header Layout: Category Name | Status Indicator
+        col_name, col_indicator = st.columns([6, 4])
+        
+        with col_name:
+            st.markdown(f"<h1 style='font-size: 38px; margin: 0;'>📍 {cat}</h1>", unsafe_allow_html=True)
+        
+        with col_indicator:
+            # Indicator Container: Includes Label, Circle, and Sub-message
+            st.markdown(
+                f"""
+                <div style="display: flex; align-items: center; justify-content: flex-end;">
+                    <div style="text-align: right; margin-right: 15px;">
+                        <span style="font-size: 14px; font-weight: bold; color: #333; display: block; margin-bottom: -5px;">STATUS</span>
+                        <span style="font-size: 28px; font-weight: 900; color: {status_text_color};">{status_text}</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div style="width: 55px; height: 55px; background-color: {light_color}; border-radius: 50%; border: 4px solid #000;"></div>
+                        {f"<p style='color: black; font-weight: bold; font-size: 14px; margin-top: 5px; text-align: center; line-height: 1.1;'>Go ahead and start.<br>See note.</p>" if c_data.get("show_start_msg", False) else ""}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True
+            )
         
         if c_data.get("note"):
             st.markdown(f"<div style='background-color:#e1f5fe; padding:15px; border-radius:10px; border-left: 8px solid #03a9f4; margin-bottom:20px;'><span style='font-size: 20px;'><strong>Status Note:</strong> {c_data['note']}</span><br><small>Updated: {c_data.get('timestamp')}</small></div>", unsafe_allow_html=True)
@@ -166,52 +164,24 @@ def show_tasks():
         
         for index, task in enumerate(tasks_list):
             td = task.to_dict()
-            task_id = task.id
             db_status = td.get("completed", False)
-            current_order = td.get("sort_order", index)
-            
-            unique_key = f"w_{task_id}_{db_status}_{is_admin}"
             bg_color = "rgba(220, 252, 231, 1.0)" if db_status else "rgba(254, 226, 226, 1.0)"
             
             st.markdown(f"""<div style="background-color: {bg_color}; border: 3px solid black; padding: 30px; border-radius: 15px; margin-bottom: 15px; color: black;">""", unsafe_allow_html=True)
             
-            # Widened the checkbox column to accommodate the larger scale
             cols = st.columns([1.2, 0.8, 6.0, 2]) if is_admin else st.columns([1.5, 8.5])
 
             with cols[0]:
-                is_disabled = db_status and not is_admin
-                check_val = st.checkbox("", value=db_status, key=unique_key, disabled=is_disabled, label_visibility="collapsed")
+                check_val = st.checkbox("", value=db_status, key=f"w_{task.id}_{db_status}_{is_admin}", disabled=(db_status and not is_admin), label_visibility="collapsed")
                 if check_val != db_status:
-                    update_task_status(task_id, check_val)
+                    update_task_status(task.id, check_val)
                     st.rerun()
             
-            if is_admin:
-                with cols[1]:
-                    u, d = st.columns(2)
-                    if index > 0 and u.button("▲", key=f"u_{task_id}"):
-                        move_task(task_id, cat, current_order, -1); st.rerun()
-                    if index < len(tasks_list) - 1 and d.button("▼", key=f"d_{task_id}"):
-                        move_task(task_id, cat, current_order, 1); st.rerun()
-
             text_col = cols[2] if is_admin else cols[1]
             with text_col:
                 icon = '✅' if db_status else '⏳'
                 st.markdown(f"<span style='font-size: 28px; font-weight: bold;'>{icon} {td['title']}</span>", unsafe_allow_html=True)
                 if td.get("notes"): st.info(f"📝 {td['notes']}")
-                
-                if is_admin:
-                    with st.popover("Edit Note"):
-                        n = st.text_area("Edit:", value=td.get("notes", ""), key=f"nt_{task_id}")
-                        c1, c2 = st.columns(2)
-                        if c1.button("Save", key=f"s_{task_id}"):
-                            db.collection("race_tasks").document(task_id).update({"notes": n}); st.rerun()
-                        if c2.button("🗑️", key=f"del_n_{task_id}"):
-                            db.collection("race_tasks").document(task_id).update({"notes": ""}); st.rerun()
-            
-            if is_admin:
-                with cols[3]:
-                    if st.button("Delete Task", key=f"dt_{task_id}", use_container_width=True):
-                        db.collection("race_tasks").document(task_id).delete(); st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
 
