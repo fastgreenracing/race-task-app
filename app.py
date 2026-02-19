@@ -31,32 +31,29 @@ st.markdown(
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
     }}
     
-    /* --- SIDEBAR FIX --- */
-    /* Target the built-in Streamlit toggle container to add the border */
-    /* This prevents the "double box" issue */
+    /* --- SIDEBAR TOGGLE FIX --- */
+    /* This targets the internal container of the toggle to create the black box */
     [data-testid="stSidebar"] .stToggle {{
         border: 3px solid black !important;
         border-radius: 12px !important;
-        padding: 10px 15px !important;
+        padding: 10px 10px 10px 5px !important;
         background-color: white !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
         width: 100% !important;
+        display: flex !important;
     }}
 
-    /* SHRINK TOGGLE SWITCH AND TEXT */
+    /* Scale the label/switch to 75% so it fits the sidebar width without wrapping */
     [data-testid="stSidebar"] .stToggle > label {{
-        transform: scale(0.65); /* Shrink both switch and text to 65% */
+        transform: scale(0.75);
         transform-origin: left center;
-        width: 150% !important; /* Counteract the shrink to keep it clickable */
+        width: 130% !important;
     }}
 
     [data-testid="stSidebar"] .stToggle label p {{
         font-size: 20px !important;
         font-weight: 900 !important;
         color: black !important;
-        white-space: nowrap !important;
+        white-space: nowrap !important; /* Forces text to stay on one line */
     }}
 
     /* --- USER SIDE TASK CARDS --- */
@@ -133,7 +130,7 @@ with st.sidebar:
         for c in cats:
             c_data = get_cat_data(c)
             with st.expander(f"Edit {c}"):
-                # Toggle switch (now styled via CSS above)
+                # Standard toggle - CSS handles the box/border now
                 new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
                 
                 new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"n_{c}")
