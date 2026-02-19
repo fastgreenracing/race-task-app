@@ -4,7 +4,7 @@ import json
 from streamlit_js_eval import get_geolocation
 import pandas as pd
 import pydeck as pdk
-from datetime import datetime
+from datetime import datetime # Explicit import for the strftime call
 
 # 1. Database Connection
 key_dict = json.loads(st.secrets["textkey"])
@@ -12,12 +12,11 @@ db = firestore.Client.from_service_account_info(key_dict)
 
 st.set_page_config(page_title="Staff Live Map", page_icon="📍", layout="wide")
 
-# --- PERSISTENCE LOGIC ---
-# Initialize session state for the toggle if not already there
+# Persistent state for tracking toggle
 if "tracking_active" not in st.session_state:
     st.session_state.tracking_active = False
 
-# --- NO-SLEEP INJECTION ---
+# No-sleep script
 st.components.v1.html(
     """
     <script>
@@ -37,25 +36,15 @@ st.title("📍 Race Command: Live Staff Tracker")
 # --- SIDEBAR: STAFF TRACKING ---
 with st.sidebar:
     st.header("Staff Check-In")
-    
-    # We use a key to keep the name in the box during refreshes
     staff_name = st.text_input("Name/Role", key="staff_name_persistent")
     
-    # The toggle now uses the session state to stay 'on'
+    # Toggle logic
     tracking_toggle = st.toggle(
         "Enable My Live Tracking", 
         value=st.session_state.tracking_active,
         key="tracking_on"
     )
-    
-    # Update our session state based on the toggle
     st.session_state.tracking_active = tracking_toggle
-
-    if st.session_state.tracking_active and staff_name:
-        st.success(f"Tracking Protocol: ACTIVE")
-        st.caption("Keep this tab open for continuous pings.")
-    else:
-        st.info("Tracking is currently OFF.")
 
 # --- 1. COURSE OVERVIEW ---
 st.components.v1.html('<iframe src="https://www.google.com/maps/d/u/0/embed?mid=1_your_actual_map_id" width="100%" height="450" style="border-radius:25px; border:3px solid black;"></iframe>', height=450)
@@ -76,12 +65,13 @@ def sync_and_show_map():
                 "name": staff_name.strip(),
                 "latitude": lat,
                 "longitude": lon,
-                "timestamp": firestore.SERVER_TIMESTAMP,
-                "active": True # Flag to show they are currently transmitting
+                "timestamp": firestore.SERVER_TIMESTAMP
             })
-            st.sidebar.write(f"📡 Last Ping: {datetime.now().strftime('%I:%M:%S %p')}")
+            # FIXED: We now show the ping status in the main area to avoid the Sidebar Error
+            st.caption(f"📡 Device Status: Connected | Last Ping: {datetime.now().strftime('%I:%M:%S %p')}")
 
     # PART B: PULL & DISPLAY
+    st.subheader("🏃 Live Staff Positions")
     locations_ref = db.collection("staff_locations").stream()
     loc_data = []
     
@@ -93,9 +83,11 @@ def sync_and_show_map():
     if loc_data:
         df = pd.DataFrame(loc_data)
         
-        # Determine map center
-        avg_lat = df["latitude"].mean()
-        avg_lon = df["longitude"].mean()
+        view_state = pdk.ViewState(
+            latitude=df["latitude"].mean(),
+            longitude=df["longitude"].mean(),
+            zoom=12
+        )
 
         st.pydeck_chart(pdk.Deck(
             layers=[
@@ -103,16 +95,12 @@ def sync_and_show_map():
                     "ScatterplotLayer",
                     data=df,
                     get_position="[longitude, latitude]",
-                    get_color="[40, 167, 69, 200]", # Fast Green
+                    get_color="[40, 167, 69, 200]",
                     get_radius=180,
                     pickable=True
                 )
             ],
-            initial_view_state=pdk.ViewState(
-                latitude=avg_lat,
-                longitude=avg_lon,
-                zoom=12
-            ),
+            initial_view_state=view_state,
             map_style=None,
             tooltip={"text": "{name}"}
         ))
