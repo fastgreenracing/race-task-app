@@ -31,6 +31,7 @@ st.markdown(
         margin-bottom: 2rem;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
     }}
+    /* Enlarge Checkboxes */
     [data-testid="stCheckbox"] {{
         transform: scale(2.2);
         margin-left: 25px;
@@ -40,8 +41,12 @@ st.markdown(
         border: 3px solid black !important;
         background-color: white !important;
     }}
-    [data-testid="stCheckbox"] div {{
-        border: none !important;
+    /* The Fix: Style the Streamlit Vertical Block itself as the card */
+    [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
+        border: 3px solid black !important;
+        border-radius: 15px;
+        padding: 20px !important;
+        margin-bottom: 15px !important;
     }}
     h1 {{
         color: #000000 !important;
@@ -78,9 +83,6 @@ def set_cat_status(cat_name, status, note=None, show_start=False):
         data["note"] = note
         data["timestamp"] = get_now() if note else ""
     db.collection("settings").document(f"status_{safe_id}").set(data, merge=True)
-
-def update_task_status(doc_id, new_status):
-    db.collection("race_tasks").document(doc_id).update({"completed": new_status})
 
 # --- 3. SIDEBAR: ACCESS CONTROL ---
 with st.sidebar:
@@ -143,36 +145,26 @@ def show_tasks():
         if c_data.get("note"):
             st.markdown(f"<div style='background-color:#e1f5fe; padding:15px; border-radius:10px; border-left: 8px solid #03a9f4; margin-bottom:20px;'><span style='font-size: 20px;'><strong>Status Note:</strong> {c_data['note']}</span><br><small>Updated: {c_data.get('timestamp')}</small></div>", unsafe_allow_html=True)
         
-        try:
-            tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
-            tasks_list = list(tasks_query)
-        except Exception:
-            tasks_list = []
+        tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
         
-        for task in tasks_list:
+        for task in tasks_query:
             td = task.to_dict()
             db_status = td.get("completed", False)
-            bg_color = "rgba(220, 252, 231, 1.0)" if db_status else "rgba(254, 226, 226, 1.0)"
             
-            # The "Container" now exists only within a single column block
-            # to prevent Streamlit from leaking the HTML tags.
-            st.markdown(f"""<div style="background-color: {bg_color}; border: 3px solid black; padding: 30px; border-radius: 15px; margin-bottom: 15px; color: black;">""", unsafe_allow_html=True)
-            
+            # Logic: No more manual <div> tags here. 
+            # The CSS at the top handles the border and padding automatically.
             cols = st.columns([1.2, 0.8, 6.0, 2]) if is_admin else st.columns([1.5, 8.5])
             with cols[0]:
                 check_val = st.checkbox("", value=db_status, key=f"w_{task.id}_{db_status}_{is_admin}", disabled=(db_status and not is_admin), label_visibility="collapsed")
                 if check_val != db_status:
-                    update_task_status(task.id, check_val)
+                    db.collection("race_tasks").document(task.id).update({"completed": check_val})
                     st.rerun()
             
             text_col = cols[2] if is_admin else cols[1]
             with text_col:
                 icon = '✅' if db_status else '⏳'
-                st.markdown(f"<span style='font-size: 28px; font-weight: bold; color: black;'>{icon} {td['title']}</span>", unsafe_allow_html=True)
+                st.markdown(f"### {icon} {td['title']}")
                 if td.get("notes"):
                     st.info(f"📝 {td['notes']}")
-            
-            # Closing the div explicitly inside the same indentation level
-            st.markdown("</div>", unsafe_allow_html=True)
 
 show_tasks()
