@@ -32,14 +32,19 @@ st.markdown(
     }}
     
     /* --- SIDEBAR TOGGLE FIX --- */
-    /* Shrink the toggle and text by 30% within the sidebar containers */
-    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] div.stToggle {{
-        zoom: 0.7; /* Shorthand to shrink everything inside by 30% */
+    /* Target the sidebar toggle to shrink it and prevent vertical text */
+    [data-testid="stSidebar"] div.stToggle {{
+        zoom: 0.6; /* Shrink switch and text to 60% to fit one line */
+        border: 2px solid black !important;
+        padding: 10px !important;
+        border-radius: 10px !important;
+        background-color: white !important;
     }}
     
-    /* Force the sidebar container border to be Black and Thick */
-    [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {{
-        border: 3px solid black !important;
+    [data-testid="stSidebar"] .stToggle label p {{
+        font-size: 20px !important;
+        font-weight: bold !important;
+        white-space: nowrap !important; /* Forces text to stay on one line */
     }}
 
     /* User Side Task Card Styling */
@@ -116,10 +121,8 @@ with st.sidebar:
         for c in cats:
             c_data = get_cat_data(c)
             with st.expander(f"Edit {c}"):
-                # Using a native Streamlit container with a border
-                # This creates the "Black Box" reliably
-                with st.container(border=True):
-                    new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
+                # Toggle box: NO manual containers, CSS targets st.toggle directly
+                new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
                 
                 new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"n_{c}")
                 if st.button("Save", key=f"up_{c}"):
