@@ -63,7 +63,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 st.divider()
 
 # --- 2. STAFF TRACKER (LIVE POSITIONS) ---
-@st.fragment(run_every=30)
+@st.fragment(run_every=60)
 def show_staff_map():
     st.subheader("🏃 Live Staff Positions")
     locations_ref = db.collection("staff_locations").stream()
