@@ -1,9 +1,3 @@
-I have added Rename functionality to the management sections in the sidebar. You can now edit the names of existing categories and tasks directly.
-
-When you rename a category, the app is smart enough to find all the tasks associated with the old name and move them to the new name automatically so you don't lose any data.
-
-Full Updated app.py
-Python
 import streamlit as st
 from google.cloud import firestore
 import json
