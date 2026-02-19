@@ -4,55 +4,65 @@ import json
 from streamlit_js_eval import get_geolocation
 import pandas as pd
 
-# 1. Setup Database (Same as your app.py)
+# 1. Database Connection
 if "textkey" in st.secrets:
     key_dict = json.loads(st.secrets["textkey"])
     db = firestore.Client.from_service_account_info(key_dict)
 else:
-    st.error("Firestore credentials not found in secrets.")
+    st.error("Credentials not found.")
     st.stop()
 
-st.title("📍 Staff Live Tracker")
+st.set_page_config(page_title="Staff Live Map", page_icon="📍", layout="wide")
 
-# 2. Staff Login / Identification
-st.sidebar.header("Staff Check-In")
-staff_name = st.sidebar.text_input("Enter Your Name/Role (e.g., Lead Bike)")
-tracking_on = st.sidebar.toggle("Enable Live Tracking")
+st.title("📍 Staff Live GPS Tracker")
 
-if tracking_on and staff_name:
-    # This grabs the GPS coordinates from the phone's browser
-    location = get_geolocation()
+# --- CUSTOM GOOGLE MAP EMBED (COURSE ROUTE) ---
+st.subheader("🗺️ Course Route & Key Areas")
+st.components.v1.html('<iframe src="https://www.google.com/maps/d/u/0/embed?mid=1S9N_M4Vp4_Q0P0o6H1_v8B_k8B_k8B" width="100%" height="480" style="border-radius:25px; border: 3px solid black;"></iframe>', height=500)
+
+# --- STAFF TRACKING SECTION ---
+with st.sidebar:
+    st.header("Staff Check-In")
+    staff_name = st.text_input("Name/Role (e.g., Lead Bike)")
+    tracking_on = st.toggle("Enable My Live Tracking")
     
-    if location:
-        lat = location['coords']['latitude']
-        lon = location['coords']['longitude']
-        
-        # Save to Firestore
-        db.collection("staff_locations").document(staff_name).set({
-            "name": staff_name,
-            "latitude": lat,
-            "longitude": lon,
-            "timestamp": firestore.SERVER_TIMESTAMP
+    if tracking_on and staff_name:
+        location = get_geolocation()
+        if location:
+            lat = location['coords']['latitude']
+            lon = location['coords']['longitude']
+            
+            # Update Firestore
+            db.collection("staff_locations").document(staff_name).set({
+                "name": staff_name,
+                "latitude": lat,
+                "longitude": lon,
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
+            st.success(f"Tracking active: {staff_name}")
+        else:
+            st.warning("Please allow GPS access in your browser settings.")
+
+# 3. Live Map Display (Staff Icons)
+@st.fragment(run_every=30)
+def refresh_map():
+    locations_ref = db.collection("staff_locations").stream()
+    loc_data = []
+
+    for doc in locations_ref:
+        d = doc.to_dict()
+        loc_data.append({
+            "Staff": d["name"], 
+            "latitude": d["latitude"], 
+            "longitude": d["longitude"]
         })
-        st.sidebar.success(f"Tracking active for {staff_name}")
-        st.sidebar.write(f"Last Lat/Lon: {lat}, {lon}")
+
+    if loc_data:
+        st.subheader("Current Personnel Locations")
+        df = pd.DataFrame(loc_data)
+        st.map(df, zoom=12, use_container_width=True)
+        st.dataframe(df, use_container_width=True)
     else:
-        st.sidebar.warning("Please allow location access in your browser.")
+        st.info("No staff currently tracking. Waiting for check-ins...")
 
-# 3. The Master Map (For you and leads to see everyone)
-st.subheader("Live Race Map")
-
-# Pull all staff locations from Firestore
-locations_ref = db.collection("staff_locations").stream()
-loc_data = []
-
-for doc in locations_ref:
-    d = doc.to_dict()
-    loc_data.append({"name": d["name"], "latitude": d["latitude"], "longitude": d["longitude"]})
-
-if loc_data:
-    df = pd.DataFrame(loc_data)
-    st.map(df) # Automatically plots all lat/lon points
-    st.table(df) # Shows names and coordinates below the map
-else:
-    st.info("No staff currently tracking.")
+refresh_map()
