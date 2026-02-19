@@ -1,7 +1,3 @@
-To give you full control over the race structure, I have added a "Management Suite" to the Admin Sidebar. You can now add or delete entire categories and specific tasks on the fly without touching the code.
-
-Full Updated app.py
-Python
 import streamlit as st
 from google.cloud import firestore
 import json
