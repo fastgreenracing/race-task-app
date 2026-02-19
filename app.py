@@ -40,7 +40,7 @@ st.markdown(
         border: 3px solid black !important;
         background-color: white !important;
     }}
-    /* Style for the task cards */
+    /* Card styling for tasks */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -123,21 +123,20 @@ def show_tasks():
         status_text = "GO" if is_go else "NO GO"
         status_text_color = "#166534" if is_go else "#991b1b"
         
-        # THE FIX: Combining everything into ONE st.markdown call. 
-        # This removes the column conflict and the stray </div>
-        start_msg = "<p style='color: black; font-weight: bold; font-size: 16px; margin-top: 8px; text-align: center; line-height: 1.1;'>Go ahead and start.<br>See note.</p>" if c_data.get("show_start_msg", False) else ""
+        # THE FIX: We use a simplified single block. No columns, no complex nests.
+        start_msg_html = f"<div style='color: black; font-weight: bold; font-size: 14px; text-align: center; margin-top: 5px; line-height: 1.1;'>Go ahead and start.<br>See note.</div>" if c_data.get("show_start_msg", False) else ""
         
         header_html = f"""
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-            <h1 style="font-size: 38px; margin: 0; flex-grow: 1;">📍 {cat}</h1>
-            <div style="display: flex; align-items: center; justify-content: flex-end;">
-                <div style="text-align: right; margin-right: 15px;">
-                    <span style="font-size: 14px; font-weight: bold; color: #333; display: block; margin-bottom: -5px;">STATUS</span>
-                    <span style="font-size: 36px; font-weight: 900; color: {status_text_color};">{status_text}</span>
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; width: 100%;">
+            <h1 style="font-size: 38px; margin: 0; padding: 0;">📍 {cat}</h1>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div style="text-align: right;">
+                    <div style="font-size: 14px; font-weight: bold; color: #333; margin-bottom: -5px;">STATUS</div>
+                    <div style="font-size: 32px; font-weight: 900; color: {status_text_color};">{status_text}</div>
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: center;">
                     <div style="width: 55px; height: 55px; background-color: {light_color}; border-radius: 50%; border: 4px solid #000;"></div>
-                    {start_msg}
+                    {start_msg_html}
                 </div>
             </div>
         </div>
@@ -145,7 +144,7 @@ def show_tasks():
         st.markdown(header_html, unsafe_allow_html=True)
         
         if c_data.get("note"):
-            st.markdown(f"<div style='background-color:#e1f5fe; padding:15px; border-radius:10px; border-left: 8px solid #03a9f4; margin-bottom:20px;'><span style='font-size: 20px;'><strong>Status Note:</strong> {c_data['note']}</span><br><small>Updated: {c_data.get('timestamp')}</small></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background-color:#e1f5fe; padding:15px; border-radius:10px; border-left: 8px solid #03a9f4; margin-bottom:20px; color: black;'><span style='font-size: 20px;'><strong>Status Note:</strong> {c_data['note']}</span><br><small>Updated: {c_data.get('timestamp')}</small></div>", unsafe_allow_html=True)
         
         tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
         
@@ -153,7 +152,6 @@ def show_tasks():
             td = task.to_dict()
             db_status = td.get("completed", False)
             
-            # Using columns for the task list is fine because we aren't using nested HTML wrappers here
             cols = st.columns([1.2, 0.8, 6.0, 2]) if is_admin else st.columns([1.5, 8.5])
             with cols[0]:
                 check_val = st.checkbox("", value=db_status, key=f"w_{task.id}_{db_status}_{is_admin}", disabled=(db_status and not is_admin), label_visibility="collapsed")
