@@ -76,7 +76,6 @@ st.title("Fast Green Racing: Live Tracker")
 ADMIN_PASSWORD = "fastgreen2026" 
 TIMEZONE = "US/Pacific"
 
-# Initialize Session State for Persistent Login
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -206,6 +205,11 @@ with st.sidebar:
             st.rerun()
 
 # --- MAIN DISPLAY ---
+# Added Map Embed Section
+st.markdown('<div class="bold-divider"></div>', unsafe_allow_html=True)
+st.markdown("## <u>**Live Staff Map**</u>", unsafe_allow_html=True)
+st.components.v1.html('<iframe src="https://www.google.com/maps/d/embed?mid=1UOQuxT6lSaKGXm2wmjVzeFwVuORY8Vk&hl=en&ehbc=2E312F" width="100%" height="480" style="border-radius:25px; border: 3px solid black;"></iframe>', height=500)
+
 @st.fragment(run_every=5)
 def show_tasks():
     is_admin = st.session_state.authenticated
