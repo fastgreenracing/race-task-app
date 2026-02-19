@@ -16,7 +16,7 @@ BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac91
 st.markdown(
     f"""
     <style>
-    /* GLOBAL THEME OVERRIDE - FORCES ALL PRIMARY ELEMENTS TO GREEN */
+    /* GLOBAL THEME OVERRIDE */
     :root {{
         --primary-color: #28a745 !important;
     }}
@@ -60,19 +60,24 @@ st.markdown(
         margin-top: 10px;
     }}
     
-    /* Force the box background to Green when checked */
+    /* TARGETING THE CHECKBOX BACKGROUND TO KILL THE RED */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {{
         background-color: #28a745 !important;
         border-color: #28a745 !important;
     }}
+
+    /* TARGETING THE INNER ICON CONTAINER */
+    [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] > div {{
+        background-color: #28a745 !important;
+    }}
     
-    /* Force the checkmark itself to be white (eliminates any red/orange default) */
+    /* ENSURE THE CHECKMARK SVG IS WHITE */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] svg {{
         fill: white !important;
         color: white !important;
     }}
 
-    /* Standard border remains black for high contrast */
+    /* Standard border remains black for high contrast when unchecked */
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
     }}
@@ -179,7 +184,6 @@ def show_tasks():
             td = task.to_dict()
             t_cols = st.columns([1.5, 8.5])
             with t_cols[0]:
-                # Using current status in key to force correct color re-render
                 check = st.checkbox("", value=td.get("completed", False), key=f"w_{task.id}_{td.get('completed')}", disabled=(td.get("completed") and not is_admin), label_visibility="collapsed")
                 if check != td.get("completed"):
                     db.collection("race_tasks").document(task.id).update({"completed": check})
