@@ -30,7 +30,32 @@ st.markdown(
         margin-top: 2rem;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
     }}
-    /* Standard Task Card Styling */
+    
+    /* FIX FOR ADMIN SIDEBAR TOGGLE BOX */
+    [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {{
+        border: 2px solid black !important;
+        border-radius: 10px;
+        padding: 10px !important;
+    }}
+    
+    /* Ensure toggle and text fit inside the sidebar container */
+    [data-testid="stSidebar"] .stToggle {{
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        width: 100%;
+        overflow: hidden;
+    }}
+    
+    [data-testid="stSidebar"] .stToggle label p {{
+        font-size: 22px !important;
+        font-weight: bold !important;
+        color: #31333F !important;
+        margin: 0 !important;
+    }}
+
+    /* Standard Task Card Styling (User Side) */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -46,12 +71,18 @@ st.markdown(
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
     }}
+    
     /* Status Light Style */
     .status-bulb {{
         width: 55px;
         height: 55px;
         border-radius: 50%;
         border: 4px solid black;
+    }}
+    
+    h1 {{
+        color: #000000 !important;
+        font-family: 'Helvetica Neue', sans-serif;
     }}
     </style>
     """,
@@ -91,14 +122,18 @@ with st.sidebar:
     pwd = st.text_input("Admin Password", type="password")
     is_admin = (pwd == ADMIN_PASSWORD)
     st.session_state.admin_logged_in = is_admin
+    
     if is_admin:
         st.success("Admin Mode")
+        st.divider()
         cats = get_categories()
         for c in cats:
             c_data = get_cat_data(c)
             with st.expander(f"Edit {c}"):
-                new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
-                # REMOVED: Start Msg radio buttons
+                # Toggle box container for better layout
+                with st.container(border=True):
+                    new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
+                
                 new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"n_{c}")
                 if st.button("Save", key=f"up_{c}"):
                     set_cat_status(c, new_s, new_n)
@@ -114,7 +149,6 @@ def show_tasks():
         st.divider()
         c_data = get_cat_data(cat)
         
-        # CATEGORY HEADER WITH ALIGNED STATUS SECTION
         col_name, col_status_group, col_bulb = st.columns([7, 1.5, 1.5])
         
         with col_name:
@@ -124,7 +158,6 @@ def show_tasks():
             is_go = c_data.get("completed", False)
             s_text = "GO" if is_go else "NO GO"
             s_color = "green" if is_go else "red"
-            # Centered STATUS over GO/NO GO
             st.markdown(f"""
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding-top: 5px;">
                     <p style="margin-bottom: -5px; font-weight: bold; font-size: 18px; color: #333; text-transform: uppercase;">STATUS</p>
@@ -136,11 +169,9 @@ def show_tasks():
             l_color = "#22c55e" if is_go else "#ef4444"
             st.markdown(f'<div class="status-bulb" style="background-color: {l_color}; margin-top: 10px;"></div>', unsafe_allow_html=True)
 
-        # Status Note
         if c_data.get("note"):
             st.info(f"**Note:** {c_data['note']} \n\n *Updated: {c_data.get('timestamp')}*")
         
-        # TASK LIST
         tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
         for task in tasks_query:
             td = task.to_dict()
