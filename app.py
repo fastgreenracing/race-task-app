@@ -102,6 +102,7 @@ with st.sidebar:
     st.session_state.admin_logged_in = is_admin
     if is_admin:
         st.success("Admin Mode")
+        st.divider()
         cats = get_categories()
         for c in cats:
             c_data = get_cat_data(c)
@@ -158,8 +159,9 @@ def show_tasks():
                 if check != db_status:
                     db.collection("race_tasks").document(task.id).update({"completed": check}); st.rerun()
             with t_cols[1]:
-                icon = '✅' if db_status else '⏳'
-                st.markdown(f"### {icon} {td['title']}")
+                # REMOVED HOURGLASS: Only shows checkmark if completed
+                icon = '✅ ' if db_status else ''
+                st.markdown(f"### {icon}{td['title']}")
                 if td.get("notes"): st.info(f"📝 {td['notes']}")
 
 show_tasks()
