@@ -1,7 +1,3 @@
-I've integrated the Clear All Staff functionality into your main app.py. I placed it right at the bottom of the Admin sidebar so it’s easy to find but won’t get in the way of your category and task management.
-
-Full Updated app.py
-Python
 import streamlit as st
 from google.cloud import firestore
 import json
