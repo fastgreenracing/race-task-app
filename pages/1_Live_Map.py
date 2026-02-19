@@ -28,7 +28,20 @@ with st.sidebar:
     st.header("Staff Check-In")
     staff_name = st.text_input("Name/Role (e.g., Ben DeWitt)", key="staff_name_input")
     tracking_on = st.toggle("Enable My Live Tracking")
-    
+
+# --- 1. COURSE OVERVIEW (CUSTOM GOOGLE MAP) ---
+st.subheader("🗺️ Course Overview")
+st.markdown('<div class="map-container">', unsafe_allow_html=True)
+# Replace with your actual Google My Maps embed link
+st.components.v1.html('<iframe src="https://www.google.com/maps/d/u/0/embed?mid=1_your_actual_map_id" width="100%" height="600" style="border:none;"></iframe>', height=600)
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.divider()
+
+# --- 2. THE LIVE LOOP (Pings GPS and Updates Map) ---
+@st.fragment(run_every=30)
+def sync_and_show_map():
+    # PART A: Update current user's location if tracking is on
     if tracking_on and staff_name:
         location = get_geolocation()
         if location:
@@ -36,27 +49,15 @@ with st.sidebar:
             lon_val = location['coords']['longitude']
             
             name_clean = staff_name.strip()
-
             db.collection("staff_locations").document(name_clean).set({
                 "name": name_clean,
                 "latitude": lat_val,
                 "longitude": lon_val,
                 "timestamp": firestore.SERVER_TIMESTAMP
             })
-            st.success(f"Tracking active for {name_clean}")
+            st.sidebar.success(f"Last Ping: {datetime.now().strftime('%I:%M:%S %p')}")
 
-# --- 1. COURSE OVERVIEW (CUSTOM GOOGLE MAP) ---
-st.subheader("🗺️ Course Overview")
-st.markdown('<div class="map-container">', unsafe_allow_html=True)
-# Ensure this URL is your actual Google My Maps embed link
-st.components.v1.html('<<iframe src="https://www.google.com/maps/d/embed?mid=1UOQuxT6lSaKGXm2wmjVzeFwVuORY8Vk&hl=en&ehbc=2E312F" width="640" height="480"></iframe>', height=600)
-st.markdown('</div>', unsafe_allow_html=True)
-
-st.divider()
-
-# --- 2. STAFF TRACKER (PYDECK MAP) ---
-@st.fragment(run_every=30)
-def show_staff_map():
+    # PART B: Pull all staff and show the map
     st.subheader("🏃 Live Staff Positions")
     locations_ref = db.collection("staff_locations").stream()
     loc_data = []
@@ -72,7 +73,6 @@ def show_staff_map():
     
     if loc_data:
         df = pd.DataFrame(loc_data)
-        
         view_state = pdk.ViewState(
             latitude=df["latitude"].mean(),
             longitude=df["longitude"].mean(),
@@ -80,12 +80,11 @@ def show_staff_map():
             pitch=0
         )
 
-        # Clean Green Dots only
         icon_layer = pdk.Layer(
             "ScatterplotLayer",
             data=df,
             get_position="[longitude, latitude]",
-            get_color="[40, 167, 69, 200]", # Fast Green
+            get_color="[40, 167, 69, 200]",
             get_radius=150,
             pickable=True
         )
@@ -99,4 +98,4 @@ def show_staff_map():
     else:
         st.info("No staff currently tracking.")
 
-show_staff_map()
+sync_and_show_map()
