@@ -73,6 +73,9 @@ def get_categories():
     return []
 
 def save_categories(cat_data_list):
+    # Ensure orders are sequential 0, 1, 2...
+    for i, cat in enumerate(cat_data_list):
+        cat['order'] = i
     db.collection("settings").document("categories").set({"data": cat_data_list})
 
 def get_cat_data(cat_name):
@@ -102,14 +105,25 @@ with st.sidebar:
         st.divider()
         st.subheader("📁 Manage Categories")
         
-        with st.expander("🔢 Reorder Categories"):
-            new_cat_order = []
+        with st.expander("🔢 Move / 🗑️ Delete Categories"):
             for i, cat in enumerate(current_cats):
-                new_val = st.number_input(f"Position: {cat['name']}", value=cat.get('order', i), key=f"reorder_cat_{cat['name']}")
-                new_cat_order.append({"name": cat['name'], "order": new_val})
-            if st.button("Update Category Order"):
-                save_categories(new_cat_order)
-                st.rerun()
+                col_name, col_up, col_down, col_del = st.columns([4, 1, 1, 1])
+                col_name.write(f"**{cat['name']}**")
+                
+                if col_up.button("🔼", key=f"cat_up_{i}") and i > 0:
+                    current_cats[i], current_cats[i-1] = current_cats[i-1], current_cats[i]
+                    save_categories(current_cats)
+                    st.rerun()
+                
+                if col_down.button("🔽", key=f"cat_down_{i}") and i < len(current_cats)-1:
+                    current_cats[i], current_cats[i+1] = current_cats[i+1], current_cats[i]
+                    save_categories(current_cats)
+                    st.rerun()
+                
+                if col_del.button("🗑️", key=f"cat_del_{i}"):
+                    current_cats.pop(i)
+                    save_categories(current_cats)
+                    st.rerun()
 
         with st.expander("➕ Add Category"):
             new_cat_name = st.text_input("New Category Name")
@@ -118,46 +132,47 @@ with st.sidebar:
                 save_categories(current_cats)
                 st.rerun()
 
-        with st.expander("🗑️ Delete Category"):
-            cat_names = [c['name'] for c in current_cats]
-            cat_to_del = st.selectbox("Select Category to Remove", [""] + cat_names)
-            if cat_to_del:
-                st.warning(f"This will remove '{cat_to_del}'. Tasks will remain in the database but won't be visible.")
-                if st.button("Confirm Delete Category", type="primary"):
-                    updated_cats = [c for c in current_cats if c['name'] != cat_to_del]
-                    save_categories(updated_cats)
-                    st.rerun()
-
         # --- TASK MANAGEMENT ---
         st.divider()
         st.subheader("📝 Manage Tasks")
         
-        with st.expander("🔢 Reorder / 🗑️ Delete Tasks"):
+        with st.expander("🔢 Move / 🗑️ Delete Tasks"):
             sel_cat = st.selectbox("Select Category", [c['name'] for c in current_cats], key="manage_task_cat")
-            tasks = db.collection("race_tasks").where("category", "==", sel_cat).order_by("sort_order").stream()
-            for t in tasks:
+            tasks_stream = db.collection("race_tasks").where("category", "==", sel_cat).order_by("sort_order").stream()
+            tasks = [t for t in tasks_stream]
+            
+            for i, t in enumerate(tasks):
                 td = t.to_dict()
-                col_re, col_del = st.columns([3, 1])
-                with col_re:
-                    new_t_order = st.number_input(f"Order: {td['title'][:15]}", value=td.get('sort_order', 0), key=f"re_{t.id}")
-                with col_del:
-                    if st.button("🗑️", key=f"del_{t.id}"):
-                        db.collection("race_tasks").document(t.id).delete()
-                        st.rerun()
-                if st.button(f"Update Order: {td['title'][:15]}", key=f"btn_re_{t.id}"):
-                    db.collection("race_tasks").document(t.id).update({"sort_order": new_t_order})
+                col_t_name, col_t_up, col_t_down, col_t_del = st.columns([4, 1, 1, 1])
+                col_t_name.write(f"{td['title'][:15]}...")
+                
+                if col_t_up.button("🔼", key=f"t_up_{t.id}") and i > 0:
+                    prev_t = tasks[i-1]
+                    db.collection("race_tasks").document(t.id).update({"sort_order": i-1})
+                    db.collection("race_tasks").document(prev_t.id).update({"sort_order": i})
+                    st.rerun()
+                
+                if col_t_down.button("🔽", key=f"t_down_{t.id}") and i < len(tasks)-1:
+                    next_t = tasks[i+1]
+                    db.collection("race_tasks").document(t.id).update({"sort_order": i+1})
+                    db.collection("race_tasks").document(next_t.id).update({"sort_order": i})
+                    st.rerun()
+                    
+                if col_t_del.button("🗑️", key=f"t_del_{t.id}"):
+                    db.collection("race_tasks").document(t.id).delete()
                     st.rerun()
 
         with st.expander("➕ Add Task"):
             t_cat = st.selectbox("Category", [c['name'] for c in current_cats], key="add_t_cat")
             t_title = st.text_input("Task Title")
-            t_order = st.number_input("Sort Position", value=0, key="add_t_order")
             if st.button("Add Task"):
+                # Get count for last position
+                existing = db.collection("race_tasks").where("category", "==", t_cat).get()
                 db.collection("race_tasks").add({
                     "category": t_cat,
                     "title": t_title,
                     "completed": False,
-                    "sort_order": t_order
+                    "sort_order": len(existing)
                 })
                 st.rerun()
 
