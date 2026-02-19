@@ -32,34 +32,17 @@ st.markdown(
     }}
     
     /* --- SIDEBAR TOGGLE FIX --- */
-    /* Black border box targeting only the toggle container */
-    [data-testid="stSidebar"] .stToggle {{
+    /* Shrink the toggle and text by 30% within the sidebar containers */
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] div.stToggle {{
+        zoom: 0.7; /* Shorthand to shrink everything inside by 30% */
+    }}
+    
+    /* Force the sidebar container border to be Black and Thick */
+    [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {{
         border: 3px solid black !important;
-        border-radius: 12px !important;
-        padding: 8px 12px !important;
-        background-color: white !important;
-        width: 100% !important;
-        display: flex !important;
-        align-items: center !important;
     }}
 
-    /* SHRINK BOTH SWITCH AND TEXT BY 30% (Scale to 0.7) */
-    [data-testid="stSidebar"] .stToggle > label {{
-        transform: scale(0.7); 
-        transform-origin: left center;
-        width: 140% !important; /* Expansion factor to offset scale shrinkage */
-        margin: 0 !important;
-    }}
-
-    [data-testid="stSidebar"] .stToggle label p {{
-        font-size: 18px !important; /* Reduced 30% from 26px */
-        font-weight: 900 !important;
-        color: black !important;
-        white-space: nowrap !important;
-        line-height: 1 !important;
-    }}
-
-    /* --- USER SIDE TASK CARDS --- */
+    /* User Side Task Card Styling */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -133,8 +116,10 @@ with st.sidebar:
         for c in cats:
             c_data = get_cat_data(c)
             with st.expander(f"Edit {c}"):
-                # Toggle - CSS handles the box/border now
-                new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
+                # Using a native Streamlit container with a border
+                # This creates the "Black Box" reliably
+                with st.container(border=True):
+                    new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
                 
                 new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"n_{c}")
                 if st.button("Save", key=f"up_{c}"):
@@ -161,7 +146,7 @@ def show_tasks():
             s_text = "GO" if is_go else "NO GO"
             s_color = "green" if is_go else "red"
             st.markdown(f"""
-                <div style="text-align: center; width: 100%;">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding-top: 5px;">
                     <p style="margin-bottom: -5px; font-weight: bold; font-size: 20px; color: #000; text-transform: uppercase;">STATUS</p>
                     <h2 style="color: {s_color}; margin: 0; font-weight: 900; font-size: 36px; line-height: 1;">{s_text}</h2>
                 </div>
@@ -169,7 +154,7 @@ def show_tasks():
             
         with col_bulb:
             l_color = "#22c55e" if is_go else "#ef4444"
-            st.markdown(f'<div class="status-bulb" style="background-color: {l_color}; margin: auto;"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="status-bulb" style="background-color: {l_color}; margin-top: 10px;"></div>', unsafe_allow_html=True)
 
         if c_data.get("note"):
             st.info(f"**Note:** {c_data['note']} \n\n *Updated: {c_data.get('timestamp')}*")
