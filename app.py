@@ -114,26 +114,27 @@ def show_tasks():
         st.divider()
         c_data = get_cat_data(cat)
         
-        # CATEGORY HEADER WITH TIGHTER SPACING
-        col_name, col_status_text, col_bulb = st.columns([7, 1.5, 1.5])
+        # CATEGORY HEADER WITH ALIGNED STATUS SECTION
+        col_name, col_status_group, col_bulb = st.columns([7, 1.5, 1.5])
         
         with col_name:
             st.header(f"📍 {cat}")
             
-        with col_status_text:
+        with col_status_group:
             is_go = c_data.get("completed", False)
             s_text = "GO" if is_go else "NO GO"
             s_color = "green" if is_go else "red"
+            # Centered STATUS over GO/NO GO
             st.markdown(f"""
-                <div style="text-align: right; padding-top: 10px;">
-                    <p style="margin-bottom: -10px; font-weight: bold; font-size: 12px; color: #333;">STATUS</p>
-                    <h3 style="color: {s_color}; margin: 0; font-weight: 900;">{s_text}</h3>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding-top: 5px;">
+                    <p style="margin-bottom: -5px; font-weight: bold; font-size: 18px; color: #333; text-transform: uppercase;">STATUS</p>
+                    <h2 style="color: {s_color}; margin: 0; font-weight: 900; line-height: 1;">{s_text}</h2>
                 </div>
             """, unsafe_allow_html=True)
             
         with col_bulb:
             l_color = "#22c55e" if is_go else "#ef4444"
-            st.markdown(f'<div class="status-bulb" style="background-color: {l_color}; margin-top: 5px;"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="status-bulb" style="background-color: {l_color}; margin-top: 10px;"></div>', unsafe_allow_html=True)
             if c_data.get("show_start_msg"):
                 st.write("**Go ahead and start. See note.**")
 
