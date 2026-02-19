@@ -125,6 +125,17 @@ with st.sidebar:
     if is_admin:
         st.success("Admin Mode")
         current_cats = get_categories()
+    # --- STAFF MAP ADMIN ---
+st.divider()
+st.subheader("🗺️ Map Management")
+if st.button("Clear All Staff from Map", type="primary"):
+    staff_docs = db.collection("staff_locations").stream()
+    count = 0
+    for doc in staff_docs:
+        db.collection("staff_locations").document(doc.id).delete()
+        count += 1
+    st.success(f"Cleared {count} staff members from the map.")
+    st.rerun()
         
         # 1. LIVE STATUS
         st.divider()
