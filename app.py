@@ -36,11 +36,18 @@ st.markdown(
     /* ENLARGE CHECKBOXES AND OUTLINE */
     [data-testid="stCheckbox"] {{
         transform: scale(1.8);
-        margin-left: 5px;
+        margin-left: 10px;
     }}
-    [data-testid="stCheckbox"] div {{
+    
+    /* Targeting the checkbox square specifically for the black outline */
+    [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 2px solid black !important;
-        border-radius: 4px;
+        background-color: white !important;
+    }}
+
+    /* Remove the default Streamlit focus/selection lines */
+    [data-testid="stCheckbox"] div {{
+        border: none !important;
     }}
     
     h1 {{
@@ -119,6 +126,7 @@ def show_tasks():
     categories = get_categories()
     
     for cat in categories:
+        # CATEGORY DIVIDER & HEADER (Kept the strong header line for navigation)
         st.markdown("<hr style='border: 2px solid #333; margin-top: 40px; margin-bottom: 20px;'>", unsafe_allow_html=True)
         
         c_data = get_cat_data(cat)
@@ -126,7 +134,7 @@ def show_tasks():
         
         st.markdown(
             f"""
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
                 <h1 style="font-size: 38px; margin: 0;">📍 {cat}</h1>
                 <div style="width: 55px; height: 55px; background-color: {light_color}; border-radius: 50%; border: 4px solid #000;"></div>
             </div>
@@ -149,14 +157,17 @@ def show_tasks():
             current_order = td.get("sort_order", index)
             
             unique_key = f"w_{task_id}_{db_status}_{is_admin}"
+            # Solid colors for maximum contrast
             bg_color = "rgba(220, 252, 231, 1.0)" if db_status else "rgba(254, 226, 226, 1.0)"
             
-            st.markdown(f"""<div style="background-color: {bg_color}; border: 2.5px solid black; padding: 25px; border-radius: 12px; margin-bottom: 8px; color: black;">""", unsafe_allow_html=True)
+            st.markdown(f"""<div style="background-color: {bg_color}; border: 2.5px solid black; padding: 25px; border-radius: 12px; margin-bottom: 15px; color: black;">""", unsafe_allow_html=True)
             
+            # Column layout
             cols = st.columns([0.8, 0.8, 6.4, 2]) if is_admin else st.columns([1.2, 8.8])
 
             with cols[0]:
-                check_val = st.checkbox("", value=db_status, key=unique_key, disabled=(db_status and not is_admin), label_visibility="collapsed")
+                is_disabled = db_status and not is_admin
+                check_val = st.checkbox("", value=db_status, key=unique_key, disabled=is_disabled, label_visibility="collapsed")
                 if check_val != db_status:
                     db.collection("race_tasks").document(task_id).update({"completed": check_val}); st.rerun()
             
@@ -195,7 +206,5 @@ def show_tasks():
                         db.collection("race_tasks").document(task_id).delete(); st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
-            if index < len(tasks_list) - 1:
-                st.markdown("<hr style='border: 1px solid #000; margin: 10px auto; width: 95%;'>", unsafe_allow_html=True)
 
 show_tasks()
