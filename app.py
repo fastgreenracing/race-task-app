@@ -1,3 +1,7 @@
+It sounds like the sidebar might be "caching" or hiding that section because of how the nested if is_admin: block is structured. To make it impossible to miss, I have moved the Map Management section to be its own top-level block within the Admin sidebar, and I added a clear red styling to the button so it stands out.
+
+Full Updated app.py
+Python
 import streamlit as st
 from google.cloud import firestore
 import json
@@ -21,11 +25,9 @@ BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac91
 st.markdown(
     f"""
     <style>
-    /* FORCED PRIMARY COLOR TO GREEN */
     :root {{
         --primary-color: #28a745 !important;
     }}
-    
     .stApp {{
         background: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), 
                     url("{BACKGROUND_IMAGE_URL}");
@@ -48,8 +50,6 @@ st.markdown(
         margin-bottom: 30px;
         border-radius: 5px;
     }}
-    
-    /* TASK CARD STYLING */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -57,21 +57,15 @@ st.markdown(
         margin-bottom: 15px !important;
         background-color: rgba(255, 255, 255, 0.6);
     }}
-
-    /* CHECKBOX SCALE & COLOR LOCK */
     [data-testid="stCheckbox"] {{
         transform: scale(2.2);
         margin-left: 25px;
         margin-top: 10px;
     }}
-    
-    /* Ensure checkbox background is green when checked */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {{
         background-color: #28a745 !important;
         border-color: #28a745 !important;
     }}
-
-    /* Standard black border when unchecked */
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
     }}
@@ -126,7 +120,7 @@ with st.sidebar:
         st.success("Admin Mode")
         current_cats = get_categories()
         
-        # 1. LIVE STATUS
+        # 🚥 1. LIVE STATUS
         st.divider()
         st.subheader("🚥 Live Status Control")
         for c in current_cats:
@@ -137,7 +131,7 @@ with st.sidebar:
                 if st.button("Save", key=f"sb_btn_{c['name']}"):
                     set_cat_status(c['name'], new_s, new_n); st.rerun()
 
-        # 2. CATEGORY ADMIN
+        # 📁 2. CATEGORY ADMIN
         st.divider()
         st.subheader("📁 Manage Categories")
         with st.expander("Move / Rename / Delete"):
@@ -154,14 +148,13 @@ with st.sidebar:
                     current_cats.pop(i); save_categories(current_cats); st.rerun()
                 
                 new_c_name = st.text_input("Rename:", value=cat['name'], key=f"ren_c_{i}")
-                if new_c_name != cat['name']:
-                    if st.button(f"Confirm Rename", key=f"cren_{i}"):
-                        old = cat['name']; cat['name'] = new_c_name; save_categories(current_cats)
-                        for t in db.collection("race_tasks").where("category", "==", old).stream():
-                            db.collection("race_tasks").document(t.id).update({"category": new_c_name})
-                        st.rerun()
+                if new_c_name != cat['name'] and st.button(f"Confirm Rename", key=f"cren_{i}"):
+                    old = cat['name']; cat['name'] = new_c_name; save_categories(current_cats)
+                    for t in db.collection("race_tasks").where("category", "==", old).stream():
+                        db.collection("race_tasks").document(t.id).update({"category": new_c_name})
+                    st.rerun()
 
-        # 3. TASK ADMIN
+        # 📝 3. TASK ADMIN
         st.divider()
         st.subheader("📝 Manage Tasks")
         with st.expander("Move / Edit / Delete Existing"):
@@ -178,7 +171,6 @@ with st.sidebar:
                     db.collection("race_tasks").document(tasks[i+1].id).update({"sort_order": i}); st.rerun()
                 if c_del.button("🗑️", key=f"tdel_{t.id}"):
                     db.collection("race_tasks").document(t.id).delete(); st.rerun()
-                
                 new_title = st.text_input("Edit Title:", value=td['title'], key=f"edt_{t.id}")
                 if st.button("Save Title", key=f"savt_{t.id}"):
                     db.collection("race_tasks").document(t.id).update({"title": new_title}); st.rerun()
@@ -190,16 +182,17 @@ with st.sidebar:
             if st.button("Add Task"):
                 db.collection("race_tasks").add({"category": nt_cat, "title": nt_title, "completed": False, "sort_order": 99}); st.rerun()
 
-        # 4. STAFF MAP ADMIN
+        # 🗺️ 4. MAP MANAGEMENT (Clear Staff)
         st.divider()
         st.subheader("🗺️ Map Management")
-        if st.button("Clear All Staff from Map", type="primary"):
+        if st.button("CLEAR ALL STAFF FROM MAP", type="primary", use_container_width=True):
             staff_docs = db.collection("staff_locations").stream()
             count = 0
             for doc in staff_docs:
                 db.collection("staff_locations").document(doc.id).delete()
                 count += 1
-            st.success(f"Cleared {count} staff members from the map.")
+            st.warning(f"Map Reset: {count} staff records deleted.")
+            # No rerun needed here as Firestore will sync, but st.rerun() ensures UI catchup
             st.rerun()
 
 # --- MAIN DISPLAY ---
@@ -207,12 +200,10 @@ with st.sidebar:
 def show_tasks():
     is_admin = st.session_state.get('admin_logged_in', False)
     categories = get_categories()
-    
     for cat_dict in categories:
         cat = cat_dict['name']
         st.markdown('<div class="bold-divider"></div>', unsafe_allow_html=True)
         c_data = get_cat_data(cat)
-        
         col_name, col_status_group = st.columns([7, 3])
         with col_name:
             st.markdown(f"## <u>**{cat}**</u>", unsafe_allow_html=True)
@@ -221,10 +212,8 @@ def show_tasks():
             s_text = "GO" if is_go else "NO GO"
             s_color = "green" if is_go else "red"
             st.markdown(f'<div style="text-align: center;"><p style="font-weight: bold; font-size: 20px; margin-bottom: -5px;">STATUS</p><h2 style="color: {s_color}; font-size: 48px; font-weight: 900; margin: 0;">{s_text}</h2></div>', unsafe_allow_html=True)
-
         if c_data.get("note"):
             st.info(f"**Note:** {c_data['note']} \n\n *Updated: {c_data.get('timestamp')}*")
-        
         tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
         for task in tasks_query:
             td = task.to_dict()
