@@ -14,7 +14,7 @@ else:
 
 st.set_page_config(page_title="Staff Live Map", page_icon="📍", layout="wide")
 
-# --- CSS for a Unified Look ---
+# CSS for styling
 st.markdown("""
     <style>
     .map-container {
@@ -37,25 +37,27 @@ with st.sidebar:
     if tracking_on and staff_name:
         location = get_geolocation()
         if location:
-            lat = location['coords']['latitude']
-            lon = location['coords']['longitude']
+            lat_val = location['coords']['latitude']
+            lon_val = location['coords']['longitude']
             
             db.collection("staff_locations").document(staff_name).set({
                 "name": staff_name,
-                "latitude": lat,
-                "longitude": lon,
+                "latitude": lat_val,
+                "longitude": lon_val,
                 "timestamp": firestore.SERVER_TIMESTAMP
             })
             st.success(f"Tracking active: {staff_name}")
+        else:
+            st.warning("Waiting for GPS signal... Make sure location is enabled.")
 
-# --- MAIN DISPLAY: THE UNIFIED VIEW ---
+# --- MAIN DISPLAY ---
 col1, col2 = st.columns([2, 1])
 
 with col1:
-    st.subheader("Live Course & Staff Overlay")
-    # This is your custom route map
+    st.subheader("Course Overview (Custom Map)")
     st.markdown('<div class="map-container">', unsafe_allow_html=True)
-    st.components.v1.html('<iframe src="https://www.google.com/maps/d/u/0/embed?mid=1S9N_M4Vp4_Q0P0o6H1_v8B_k8B_k8B" width="100%" height="500" style="border:none;"></iframe>', height=500)
+    # Replace the URL below with your actual Google My Maps embed link
+    st.components.v1.html('<iframe src="https://www.google.com/maps/d/u/0/embed?mid=YOUR_MAP_ID_HERE" width="100%" height="500" style="border:none;"></iframe>', height=500)
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
@@ -66,14 +68,26 @@ with col2:
         loc_data = []
         for doc in locations_ref:
             d = doc.to_dict()
-            loc_data.append({"Staff": d["name"], "Lat": d["latitude"], "Lon": d["longitude"]})
+            # CRITICAL FIX: Map needs 'latitude' and 'longitude' lowercase keys
+            loc_data.append({
+                "Staff": d["name"], 
+                "latitude": d.get("latitude"), 
+                "longitude": d.get("longitude")
+            })
         
         if loc_data:
             df = pd.DataFrame(loc_data)
-            st.dataframe(df[["Staff"]], use_container_width=True, hide_index=True)
-            # Small mini-map for staff clusters
-            st.map(df, size=20, color="#28a745", use_container_width=True)
+            # Drop any rows that have missing GPS data to prevent errors
+            df = df.dropna(subset=['latitude', 'longitude'])
+            
+            if not df.empty:
+                # mini-map for staff clusters
+                st.map(df, size=20, color="#28a745", use_container_width=True)
+                # table for quick reference
+                st.dataframe(df[["Staff"]], use_container_width=True, hide_index=True)
+            else:
+                st.info("Staff connected, but no GPS coordinates received yet.")
         else:
-            st.info("No staff active.")
+            st.info("No staff active. Use the sidebar to check in.")
 
     show_staff_list()
