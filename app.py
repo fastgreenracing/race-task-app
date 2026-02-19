@@ -55,13 +55,6 @@ st.markdown(
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
     }}
-    /* Status Light Style */
-    .status-bulb {{
-        width: 55px;
-        height: 55px;
-        border-radius: 50%;
-        border: 4px solid black;
-    }}
     </style>
     """,
     unsafe_allow_html=True
@@ -125,7 +118,8 @@ def show_tasks():
         
         c_data = get_cat_data(cat)
         
-        col_name, col_status_group, col_bulb = st.columns([7, 1.5, 1.5])
+        # UI UPDATED: Removed the bulb column, adjusted the ratio to [7.5, 2.5]
+        col_name, col_status_group = st.columns([7.5, 2.5])
         
         with col_name:
             st.header(f"📍 {cat}")
@@ -134,20 +128,19 @@ def show_tasks():
             is_go = c_data.get("completed", False)
             s_text = "GO" if is_go else "NO GO"
             s_color = "green" if is_go else "red"
+            # Centered STATUS over GO/NO GO
             st.markdown(f"""
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding-top: 5px;">
-                    <p style="margin-bottom: -5px; font-weight: bold; font-size: 18px; color: #333; text-transform: uppercase;">STATUS</p>
-                    <h2 style="color: {s_color}; margin: 0; font-weight: 900; line-height: 1;">{s_text}</h2>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                    <p style="margin-bottom: -5px; font-weight: bold; font-size: 20px; color: #333; text-transform: uppercase;">STATUS</p>
+                    <h2 style="color: {s_color}; margin: 0; font-weight: 900; font-size: 38px; line-height: 1;">{s_text}</h2>
                 </div>
             """, unsafe_allow_html=True)
-            
-        with col_bulb:
-            l_color = "#22c55e" if is_go else "#ef4444"
-            st.markdown(f'<div class="status-bulb" style="background-color: {l_color}; margin-top: 10px;"></div>', unsafe_allow_html=True)
 
+        # Status Note
         if c_data.get("note"):
             st.info(f"**Note:** {c_data['note']} \n\n *Updated: {c_data.get('timestamp')}*")
         
+        # TASK LIST
         tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
         for task in tasks_query:
             td = task.to_dict()
@@ -159,7 +152,6 @@ def show_tasks():
                 if check != db_status:
                     db.collection("race_tasks").document(task.id).update({"completed": check}); st.rerun()
             with t_cols[1]:
-                # REMOVED HOURGLASS: Only shows checkmark if completed
                 icon = '✅ ' if db_status else ''
                 st.markdown(f"### {icon}{td['title']}")
                 if td.get("notes"): st.info(f"📝 {td['notes']}")
