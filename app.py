@@ -1,3 +1,7 @@
+To give you full control over the race structure, I have added a "Management Suite" to the Admin Sidebar. You can now add or delete entire categories and specific tasks on the fly without touching the code.
+
+Full Updated app.py
+Python
 import streamlit as st
 from google.cloud import firestore
 import json
@@ -30,7 +34,6 @@ st.markdown(
         margin-top: 2rem;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
     }}
-    /* Bold Black Divider */
     .bold-divider {{
         border: none;
         height: 5px;
@@ -39,7 +42,6 @@ st.markdown(
         margin-bottom: 30px;
         border-radius: 5px;
     }}
-    /* Standard Task Card Styling */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -69,10 +71,13 @@ TIMEZONE = "US/Pacific"
 def get_now():
     return datetime.now(pytz.timezone(TIMEZONE)).strftime("%I:%M %p")
 
-# --- 2. DATA FUNCTIONS ---
+# --- DATA FUNCTIONS ---
 def get_categories():
     cat_ref = db.collection("settings").document("categories").get()
-    return cat_ref.to_dict().get("list", ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]) if cat_ref.exists else ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
+    return cat_ref.to_dict().get("list", []) if cat_ref.exists else []
+
+def save_categories(cat_list):
+    db.collection("settings").document("categories").set({"list": cat_list})
 
 def get_cat_data(cat_name):
     safe_id = cat_name.replace("/", "_").replace(" ", "_")
@@ -87,17 +92,74 @@ def set_cat_status(cat_name, status, note=None):
         data["timestamp"] = get_now() if note else ""
     db.collection("settings").document(f"status_{safe_id}").set(data, merge=True)
 
-# --- 3. SIDEBAR: ADMIN ---
+# --- SIDEBAR: ADMIN & MANAGEMENT ---
 with st.sidebar:
     st.header("🔐 Access Control")
     pwd = st.text_input("Admin Password", type="password")
     is_admin = (pwd == ADMIN_PASSWORD)
     st.session_state.admin_logged_in = is_admin
+    
     if is_admin:
         st.success("Admin Mode")
+        
+        # --- CATEGORY MANAGEMENT ---
         st.divider()
-        cats = get_categories()
-        for c in cats:
+        st.subheader("📁 Manage Categories")
+        current_cats = get_categories()
+        
+        with st.expander("➕ Add New Category"):
+            new_cat_name = st.text_input("Category Name (e.g. Water Stations)")
+            if st.button("Create Category"):
+                if new_cat_name and new_cat_name not in current_cats:
+                    current_cats.append(new_cat_name)
+                    save_categories(current_cats)
+                    st.rerun()
+
+        with st.expander("🗑️ Delete Category"):
+            cat_to_del = st.selectbox("Select Category to Remove", current_cats)
+            if st.button("Confirm Delete Category", type="primary"):
+                current_cats.remove(cat_to_del)
+                save_categories(current_cats)
+                # Cleanup: Delete the status doc too
+                safe_id = cat_to_del.replace("/", "_").replace(" ", "_")
+                db.collection("settings").document(f"status_{safe_id}").delete()
+                st.rerun()
+
+        # --- TASK MANAGEMENT ---
+        st.divider()
+        st.subheader("📝 Manage Tasks")
+        
+        with st.expander("➕ Add New Task"):
+            t_cat = st.selectbox("Category", current_cats, key="add_t_cat")
+            t_title = st.text_input("Task Title")
+            t_notes = st.text_area("Task Notes (Optional)")
+            if st.button("Add Task"):
+                db.collection("race_tasks").add({
+                    "category": t_cat,
+                    "title": t_title,
+                    "notes": t_notes,
+                    "completed": False,
+                    "sort_order": 99 # Default to end
+                })
+                st.rerun()
+
+        with st.expander("🗑️ Delete Task"):
+            t_cat_del = st.selectbox("Category", current_cats, key="del_t_cat")
+            tasks_to_del = db.collection("race_tasks").where("category", "==", t_cat_del).stream()
+            task_list = {t.to_dict()['title']: t.id for t in tasks_to_del}
+            
+            if task_list:
+                selected_task_title = st.selectbox("Select Task", list(task_list.keys()))
+                if st.button("Confirm Delete Task", type="primary"):
+                    db.collection("race_tasks").document(task_list[selected_task_title]).delete()
+                    st.rerun()
+            else:
+                st.info("No tasks in this category.")
+
+        # --- STATUS TOGGLES ---
+        st.divider()
+        st.subheader("🚥 Live Status Control")
+        for c in current_cats:
             c_data = get_cat_data(c)
             with st.expander(f"Edit {c}"):
                 new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
@@ -106,18 +168,19 @@ with st.sidebar:
                     set_cat_status(c, new_s, new_n)
                     st.rerun()
 
-# --- 4. MAIN DISPLAY ---
+# --- MAIN DISPLAY ---
 @st.fragment(run_every=5)
 def show_tasks():
     is_admin = st.session_state.get('admin_logged_in', False)
     categories = get_categories()
     
+    if not categories:
+        st.warning("No categories found. Use the Admin sidebar to add one.")
+        return
+
     for cat in categories:
-        # THE BIG DIVIDER
         st.markdown('<div class="bold-divider"></div>', unsafe_allow_html=True)
-        
         c_data = get_cat_data(cat)
-        
         col_name, col_status_group = st.columns([7, 3])
         
         with col_name:
@@ -127,7 +190,6 @@ def show_tasks():
             is_go = c_data.get("completed", False)
             s_text = "GO" if is_go else "NO GO"
             s_color = "green" if is_go else "red"
-            # Centered STATUS over GO/NO GO with 25% font increase
             st.markdown(f"""
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
                     <p style="margin-bottom: -5px; font-weight: bold; font-size: 20px; color: #333; text-transform: uppercase;">STATUS</p>
@@ -135,16 +197,13 @@ def show_tasks():
                 </div>
             """, unsafe_allow_html=True)
 
-        # Status Note
         if c_data.get("note"):
             st.info(f"**Note:** {c_data['note']} \n\n *Updated: {c_data.get('timestamp')}*")
         
-        # TASK LIST
         tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
         for task in tasks_query:
             td = task.to_dict()
             db_status = td.get("completed", False)
-            
             t_cols = st.columns([1.5, 8.5])
             with t_cols[0]:
                 check = st.checkbox("", value=db_status, key=f"w_{task.id}_{db_status}", disabled=(db_status and not is_admin), label_visibility="collapsed")
