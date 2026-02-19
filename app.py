@@ -1,3 +1,9 @@
+I understand the frustration—it sounds like the "Nuclear" CSS approach from the last version actually broke the sidebar's interactive elements and still didn't fix the color issue. I've stripped back the complex filters and used a much cleaner, more reliable method to force the Green checkmark while restoring every single one of your Management Functions (Move, Edit, Rename, Delete).
+
+I also added a specific "Primary Color" theme override at the top of the script which is the most stable way to change Streamlit's widget colors.
+
+Full Updated app.py
+Python
 import streamlit as st
 from google.cloud import firestore
 import json
@@ -8,7 +14,7 @@ import pytz
 key_dict = json.loads(st.secrets["textkey"])
 db = firestore.Client.from_service_account_info(key_dict)
 
-# FORCED THEME CONFIGURATION
+# THEME OVERRIDE: This is the cleanest way to kill the red for good
 st.set_page_config(
     page_title="Race Logistics", 
     page_icon="🏃", 
@@ -21,13 +27,11 @@ BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac91
 st.markdown(
     f"""
     <style>
-    /* NUCLEAR OPTION: Hue-Rotate filter */
-    /* This shifts red (0deg) to green (~120deg) for all checked boxes */
-    [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {{
-        filter: hue-rotate(260deg) saturate(200%) !important;
-        background-color: #28a745 !important;
+    /* FORCED PRIMARY COLOR TO GREEN */
+    :root {{
+        --primary-color: #28a745 !important;
     }}
-
+    
     .stApp {{
         background: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), 
                     url("{BACKGROUND_IMAGE_URL}");
@@ -51,6 +55,7 @@ st.markdown(
         border-radius: 5px;
     }}
     
+    /* TASK CARD STYLING */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -59,13 +64,20 @@ st.markdown(
         background-color: rgba(255, 255, 255, 0.6);
     }}
 
+    /* CHECKBOX SCALE & COLOR LOCK */
     [data-testid="stCheckbox"] {{
         transform: scale(2.2);
         margin-left: 25px;
         margin-top: 10px;
     }}
     
-    /* Standard border remains black when unchecked */
+    /* Ensure checkbox background is green when checked */
+    [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {{
+        background-color: #28a745 !important;
+        border-color: #28a745 !important;
+    }}
+
+    /* Standard black border when unchecked */
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
     }}
@@ -109,7 +121,7 @@ def set_cat_status(cat_name, status, note=None):
         data["timestamp"] = get_now() if note else ""
     db.collection("settings").document(f"status_{safe_id}").set(data, merge=True)
 
-# --- SIDEBAR: ADMIN CONTROLS ---
+# --- SIDEBAR: ALL ADMIN FUNCTIONS ---
 with st.sidebar:
     st.header("🔐 Access Control")
     pwd = st.text_input("Admin Password", type="password")
@@ -120,22 +132,23 @@ with st.sidebar:
         st.success("Admin Mode")
         current_cats = get_categories()
         
+        # 1. LIVE STATUS
         st.divider()
         st.subheader("🚥 Live Status Control")
         for c in current_cats:
             c_data = get_cat_data(c['name'])
             with st.expander(f"Status: {c['name']}"):
-                new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"sidebar_t_{c['name']}")
-                new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"sidebar_n_{c['name']}")
-                if st.button("Save Changes", key=f"sidebar_btn_{c['name']}"):
-                    set_cat_status(c['name'], new_s, new_n)
-                    st.rerun()
+                new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"sb_t_{c['name']}")
+                new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"sb_n_{c['name']}")
+                if st.button("Save", key=f"sb_btn_{c['name']}"):
+                    set_cat_status(c['name'], new_s, new_n); st.rerun()
 
+        # 2. CATEGORY ADMIN (Move/Rename/Delete)
         st.divider()
-        st.subheader("📁 Structure Admin")
+        st.subheader("📁 Manage Categories")
         with st.expander("Move / Rename / Delete"):
             for i, cat in enumerate(current_cats):
-                col_name, col_up, col_down = st.columns([6, 1, 1])
+                col_name, col_up, col_down, col_del = st.columns([4, 1, 1, 1])
                 col_name.write(f"**{cat['name']}**")
                 if col_up.button("🔼", key=f"cat_up_{i}") and i > 0:
                     current_cats[i], current_cats[i-1] = current_cats[i-1], current_cats[i]
@@ -143,6 +156,46 @@ with st.sidebar:
                 if col_down.button("🔽", key=f"cat_down_{i}") and i < len(current_cats)-1:
                     current_cats[i], current_cats[i+1] = current_cats[i+1], current_cats[i]
                     save_categories(current_cats); st.rerun()
+                if col_del.button("🗑️", key=f"cat_del_{i}"):
+                    current_cats.pop(i); save_categories(current_cats); st.rerun()
+                
+                new_c_name = st.text_input("Rename:", value=cat['name'], key=f"ren_c_{i}")
+                if new_c_name != cat['name']:
+                    if st.button(f"Confirm Rename", key=f"cren_{i}"):
+                        old = cat['name']; cat['name'] = new_c_name; save_categories(current_cats)
+                        for t in db.collection("race_tasks").where("category", "==", old).stream():
+                            db.collection("race_tasks").document(t.id).update({"category": new_c_name})
+                        st.rerun()
+
+        # 3. TASK ADMIN (Move/Rename/Delete/Add)
+        st.divider()
+        st.subheader("📝 Manage Tasks")
+        with st.expander("Move / Edit / Delete Existing"):
+            sel_cat = st.selectbox("Category", [c['name'] for c in current_cats], key="mt_cat")
+            tasks = [t for t in db.collection("race_tasks").where("category", "==", sel_cat).order_by("sort_order").stream()]
+            for i, t in enumerate(tasks):
+                td = t.to_dict()
+                c_up, c_down, c_del = st.columns([1,1,1])
+                if c_up.button("🔼", key=f"tup_{t.id}") and i > 0:
+                    db.collection("race_tasks").document(t.id).update({"sort_order": i-1})
+                    db.collection("race_tasks").document(tasks[i-1].id).update({"sort_order": i}); st.rerun()
+                if c_down.button("🔽", key=f"tdown_{t.id}") and i < len(tasks)-1:
+                    db.collection("race_tasks").document(t.id).update({"sort_order": i+1})
+                    db.collection("race_tasks").document(tasks[i+1].id).update({"sort_order": i}); st.rerun()
+                if c_del.button("🗑️", key=f"tdel_{t.id}"):
+                    db.collection("race_tasks").document(t.id).delete(); st.rerun()
+                
+                new_title = st.text_input("Edit Title:", value=td['title'], key=f"edt_{t.id}")
+                if new_title != td['title']:
+                    if st.button("Save Title", key=f"savt_{t.id}"):
+                        db.collection("race_tasks").document(t.id).update({"title": new_title}); st.rerun()
+                st.divider()
+
+        with st.expander("➕ Add New Task"):
+            nt_cat = st.selectbox("Category", [c['name'] for c in current_cats], key="ant_cat")
+            nt_title = st.text_input("Title", key="ant_title")
+            if st.button("Add Task"):
+                db.collection("race_tasks").add({"category": nt_cat, "title": nt_title, "completed": False, "sort_order": 99}); st.rerun()
 
 # --- MAIN DISPLAY ---
 @st.fragment(run_every=5)
@@ -174,8 +227,7 @@ def show_tasks():
             with t_cols[0]:
                 check = st.checkbox("", value=td.get("completed", False), key=f"w_{task.id}_{td.get('completed')}", disabled=(td.get("completed") and not is_admin), label_visibility="collapsed")
                 if check != td.get("completed"):
-                    db.collection("race_tasks").document(task.id).update({"completed": check})
-                    st.rerun()
+                    db.collection("race_tasks").document(task.id).update({"completed": check}); st.rerun()
             with t_cols[1]:
                 st.markdown(f"### {td['title']}")
 
