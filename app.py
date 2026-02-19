@@ -64,9 +64,7 @@ def get_now():
 # --- 2. DATA FUNCTIONS ---
 def get_categories():
     cat_ref = db.collection("settings").document("categories").get()
-    if cat_ref.exists:
-        return cat_ref.to_dict().get("list", ["Transportation", "Course & Traffic", "Vendors", "Finish Line"])
-    return ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
+    return cat_ref.to_dict().get("list", ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]) if cat_ref.exists else ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
 
 def get_cat_data(cat_name):
     safe_id = cat_name.replace("/", "_").replace(" ", "_")
@@ -124,10 +122,8 @@ def show_tasks():
         status_text_color = "#166534" if is_go else "#991b1b"
         
         col_name, col_indicator = st.columns([6, 4])
-        
         with col_name:
             st.markdown(f"<h1 style='font-size: 38px; margin: 0;'>📍 {cat}</h1>", unsafe_allow_html=True)
-        
         with col_indicator:
             st.markdown(
                 f"""
@@ -153,15 +149,16 @@ def show_tasks():
         except Exception:
             tasks_list = []
         
-        for index, task in enumerate(tasks_list):
+        for task in tasks_list:
             td = task.to_dict()
             db_status = td.get("completed", False)
             bg_color = "rgba(220, 252, 231, 1.0)" if db_status else "rgba(254, 226, 226, 1.0)"
             
+            # The "Container" now exists only within a single column block
+            # to prevent Streamlit from leaking the HTML tags.
             st.markdown(f"""<div style="background-color: {bg_color}; border: 3px solid black; padding: 30px; border-radius: 15px; margin-bottom: 15px; color: black;">""", unsafe_allow_html=True)
             
             cols = st.columns([1.2, 0.8, 6.0, 2]) if is_admin else st.columns([1.5, 8.5])
-
             with cols[0]:
                 check_val = st.checkbox("", value=db_status, key=f"w_{task.id}_{db_status}_{is_admin}", disabled=(db_status and not is_admin), label_visibility="collapsed")
                 if check_val != db_status:
@@ -171,9 +168,11 @@ def show_tasks():
             text_col = cols[2] if is_admin else cols[1]
             with text_col:
                 icon = '✅' if db_status else '⏳'
-                st.markdown(f"<span style='font-size: 28px; font-weight: bold;'>{icon} {td['title']}</span>", unsafe_allow_html=True)
-                if td.get("notes"): st.info(f"📝 {td['notes']}")
+                st.markdown(f"<span style='font-size: 28px; font-weight: bold; color: black;'>{icon} {td['title']}</span>", unsafe_allow_html=True)
+                if td.get("notes"):
+                    st.info(f"📝 {td['notes']}")
             
+            # Closing the div explicitly inside the same indentation level
             st.markdown("</div>", unsafe_allow_html=True)
 
 show_tasks()
