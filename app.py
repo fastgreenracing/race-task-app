@@ -72,9 +72,13 @@ st.markdown(
 
 st.title("🏃 Fast Green Racing: Live Tracker")
 
-# --- ADMIN SETTINGS ---
+# --- ADMIN SETTINGS & PERSISTENCE ---
 ADMIN_PASSWORD = "fastgreen2026" 
 TIMEZONE = "US/Pacific"
+
+# Initialize Login State
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
 def get_now():
     return datetime.now(pytz.timezone(TIMEZONE)).strftime("%I:%M %p")
@@ -108,12 +112,21 @@ def set_cat_status(cat_name, status, note=None):
 # --- SIDEBAR: ADMIN ---
 with st.sidebar:
     st.header("🔐 Access Control")
-    pwd = st.text_input("Admin Password", type="password")
-    is_admin = (pwd == ADMIN_PASSWORD)
-    st.session_state.admin_logged_in = is_admin
     
-    if is_admin:
-        st.success("Admin Mode")
+    if not st.session_state.authenticated:
+        pwd = st.text_input("Admin Password", type="password")
+        if st.button("Login"):
+            if pwd == ADMIN_PASSWORD:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Incorrect Password")
+    else:
+        st.success("Admin Mode Active")
+        if st.button("Logout"):
+            st.session_state.authenticated = False
+            st.rerun()
+        
         current_cats = get_categories()
         
         # 🚥 1. LIVE STATUS
@@ -178,7 +191,7 @@ with st.sidebar:
             if st.button("Add Task"):
                 db.collection("race_tasks").add({"category": nt_cat, "title": nt_title, "completed": False, "sort_order": 99}); st.rerun()
 
-        # 🗺️ 4. MAP MANAGEMENT (Clear Staff)
+        # 🗺️ 4. MAP MANAGEMENT
         st.divider()
         st.subheader("🗺️ Map Management")
         if st.button("CLEAR ALL STAFF FROM MAP", type="primary", use_container_width=True):
@@ -188,13 +201,12 @@ with st.sidebar:
                 db.collection("staff_locations").document(doc.id).delete()
                 count += 1
             st.warning(f"Map Reset: {count} staff records deleted.")
-            # No rerun needed here as Firestore will sync, but st.rerun() ensures UI catchup
             st.rerun()
 
 # --- MAIN DISPLAY ---
 @st.fragment(run_every=5)
 def show_tasks():
-    is_admin = st.session_state.get('admin_logged_in', False)
+    is_admin = st.session_state.authenticated
     categories = get_categories()
     for cat_dict in categories:
         cat = cat_dict['name']
