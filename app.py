@@ -40,6 +40,7 @@ st.markdown(
         border: 3px solid black !important;
         background-color: white !important;
     }}
+    /* Style for the task cards */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -65,7 +66,7 @@ TIMEZONE = "US/Pacific"
 def get_now():
     return datetime.now(pytz.timezone(TIMEZONE)).strftime("%I:%M %p")
 
-# --- DATA FUNCTIONS ---
+# --- 2. DATA FUNCTIONS ---
 def get_categories():
     cat_ref = db.collection("settings").document("categories").get()
     return cat_ref.to_dict().get("list", ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]) if cat_ref.exists else ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
@@ -83,7 +84,7 @@ def set_cat_status(cat_name, status, note=None, show_start=False):
         data["timestamp"] = get_now() if note else ""
     db.collection("settings").document(f"status_{safe_id}").set(data, merge=True)
 
-# --- SIDEBAR: ACCESS CONTROL ---
+# --- 3. SIDEBAR: ACCESS CONTROL ---
 with st.sidebar:
     st.header("🔐 Access Control")
     pwd = st.text_input("Admin Password", type="password")
@@ -107,7 +108,7 @@ with st.sidebar:
                     set_cat_status(c, new_s, new_n, show_start=(new_start == "Yes"))
                     st.rerun()
 
-# --- MAIN UI DISPLAY ---
+# --- 4. MAIN UI DISPLAY ---
 @st.fragment(run_every=5)
 def show_tasks():
     is_admin = st.session_state.get('admin_logged_in', False)
@@ -122,26 +123,26 @@ def show_tasks():
         status_text = "GO" if is_go else "NO GO"
         status_text_color = "#166534" if is_go else "#991b1b"
         
-        # THE FIX: Meticulously formatted HTML block to prevent stray tags
-        col_name, col_indicator = st.columns([6, 4])
-        with col_name:
-            st.markdown(f"<h1 style='font-size: 38px; margin: 0;'>📍 {cat}</h1>", unsafe_allow_html=True)
-        with col_indicator:
-            # Building the string carefully
-            start_msg_html = f"<p style='color: black; font-weight: bold; font-size: 16px; margin-top: 8px; text-align: center; line-height: 1.1;'>Go ahead and start.<br>See note.</p>" if c_data.get("show_start_msg", False) else ""
-            
-            indicator_html = f"""
-                <div style="display: flex; align-items: center; justify-content: flex-end;">
-                    <div style="text-align: right; margin-right: 15px;">
-                        <span style="font-size: 14px; font-weight: bold; color: #333; display: block; margin-bottom: -5px;">STATUS</span>
-                        <span style="font-size: 36px; font-weight: 900; color: {status_text_color};">{status_text}</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <div style="width: 55px; height: 55px; background-color: {light_color}; border-radius: 50%; border: 4px solid #000;"></div>
-                        {start_msg_html}
-                    </div>
-                </div>"""
-            st.markdown(indicator_html, unsafe_allow_html=True)
+        # THE FIX: Combining everything into ONE st.markdown call. 
+        # This removes the column conflict and the stray </div>
+        start_msg = "<p style='color: black; font-weight: bold; font-size: 16px; margin-top: 8px; text-align: center; line-height: 1.1;'>Go ahead and start.<br>See note.</p>" if c_data.get("show_start_msg", False) else ""
+        
+        header_html = f"""
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+            <h1 style="font-size: 38px; margin: 0; flex-grow: 1;">📍 {cat}</h1>
+            <div style="display: flex; align-items: center; justify-content: flex-end;">
+                <div style="text-align: right; margin-right: 15px;">
+                    <span style="font-size: 14px; font-weight: bold; color: #333; display: block; margin-bottom: -5px;">STATUS</span>
+                    <span style="font-size: 36px; font-weight: 900; color: {status_text_color};">{status_text}</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div style="width: 55px; height: 55px; background-color: {light_color}; border-radius: 50%; border: 4px solid #000;"></div>
+                    {start_msg}
+                </div>
+            </div>
+        </div>
+        """
+        st.markdown(header_html, unsafe_allow_html=True)
         
         if c_data.get("note"):
             st.markdown(f"<div style='background-color:#e1f5fe; padding:15px; border-radius:10px; border-left: 8px solid #03a9f4; margin-bottom:20px;'><span style='font-size: 20px;'><strong>Status Note:</strong> {c_data['note']}</span><br><small>Updated: {c_data.get('timestamp')}</small></div>", unsafe_allow_html=True)
@@ -152,6 +153,7 @@ def show_tasks():
             td = task.to_dict()
             db_status = td.get("completed", False)
             
+            # Using columns for the task list is fine because we aren't using nested HTML wrappers here
             cols = st.columns([1.2, 0.8, 6.0, 2]) if is_admin else st.columns([1.5, 8.5])
             with cols[0]:
                 check_val = st.checkbox("", value=db_status, key=f"w_{task.id}_{db_status}_{is_admin}", disabled=(db_status and not is_admin), label_visibility="collapsed")
