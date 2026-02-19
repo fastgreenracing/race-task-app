@@ -1,7 +1,3 @@
-I have integrated Delete functionality for both categories and individual tasks directly into the sidebar management sections. I also added a safety check for category deletion to ensure you don't accidentally wipe out an entire section of your race logistics.
-
-Full Updated app.py
-Python
 import streamlit as st
 from google.cloud import firestore
 import json
