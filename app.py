@@ -10,7 +10,7 @@ db = firestore.Client.from_service_account_info(key_dict)
 
 st.set_page_config(page_title="Race Logistics", page_icon="🏃", layout="wide")
 
-# --- CSS FOR UI (SAFE FROM CODE-BLOCK DETECTION) ---
+# --- CSS FOR UI ---
 BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?auto=format&fit=crop&w=2070&q=80"
 
 st.markdown(
@@ -52,7 +52,6 @@ st.markdown(
         height: 55px;
         border-radius: 50%;
         border: 4px solid black;
-        margin: auto;
     }}
     </style>
     """,
@@ -68,7 +67,7 @@ TIMEZONE = "US/Pacific"
 def get_now():
     return datetime.now(pytz.timezone(TIMEZONE)).strftime("%I:%M %p")
 
-# --- DATA FUNCTIONS ---
+# --- 2. DATA FUNCTIONS ---
 def get_categories():
     cat_ref = db.collection("settings").document("categories").get()
     return cat_ref.to_dict().get("list", ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]) if cat_ref.exists else ["Transportation", "Course & Traffic", "Vendors", "Finish Line"]
@@ -86,11 +85,12 @@ def set_cat_status(cat_name, status, note=None, show_start=False):
         data["timestamp"] = get_now() if note else ""
     db.collection("settings").document(f"status_{safe_id}").set(data, merge=True)
 
-# --- SIDEBAR: ADMIN ---
+# --- 3. SIDEBAR: ADMIN ---
 with st.sidebar:
     st.header("🔐 Access Control")
     pwd = st.text_input("Admin Password", type="password")
     is_admin = (pwd == ADMIN_PASSWORD)
+    st.session_state.admin_logged_in = is_admin
     if is_admin:
         st.success("Admin Mode")
         cats = get_categories()
@@ -104,7 +104,7 @@ with st.sidebar:
                     set_cat_status(c, new_s, new_n, show_start=(new_start == "Yes"))
                     st.rerun()
 
-# --- MAIN DISPLAY ---
+# --- 4. MAIN DISPLAY ---
 @st.fragment(run_every=5)
 def show_tasks():
     is_admin = st.session_state.get('admin_logged_in', False)
@@ -114,8 +114,8 @@ def show_tasks():
         st.divider()
         c_data = get_cat_data(cat)
         
-        # CATEGORY HEADER USING STREAMLIT COLUMNS (NO CUSTOM HTML TAGS)
-        col_name, col_status_text, col_bulb = st.columns([6, 2, 2])
+        # CATEGORY HEADER WITH TIGHTER SPACING
+        col_name, col_status_text, col_bulb = st.columns([7, 1.5, 1.5])
         
         with col_name:
             st.header(f"📍 {cat}")
@@ -124,12 +124,16 @@ def show_tasks():
             is_go = c_data.get("completed", False)
             s_text = "GO" if is_go else "NO GO"
             s_color = "green" if is_go else "red"
-            st.markdown(f"**STATUS**\n### :{s_color}[{s_text}]")
+            st.markdown(f"""
+                <div style="text-align: right; padding-top: 10px;">
+                    <p style="margin-bottom: -10px; font-weight: bold; font-size: 12px; color: #333;">STATUS</p>
+                    <h3 style="color: {s_color}; margin: 0; font-weight: 900;">{s_text}</h3>
+                </div>
+            """, unsafe_allow_html=True)
             
         with col_bulb:
             l_color = "#22c55e" if is_go else "#ef4444"
-            # Simple single-line HTML for the circle ONLY
-            st.markdown(f'<div class="status-bulb" style="background-color: {l_color};"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="status-bulb" style="background-color: {l_color}; margin-top: 5px;"></div>', unsafe_allow_html=True)
             if c_data.get("show_start_msg"):
                 st.write("**Go ahead and start. See note.**")
 
@@ -143,7 +147,6 @@ def show_tasks():
             td = task.to_dict()
             db_status = td.get("completed", False)
             
-            # Using standard Streamlit columns for the task boxes
             t_cols = st.columns([1.5, 8.5])
             with t_cols[0]:
                 check = st.checkbox("", value=db_status, key=f"w_{task.id}_{db_status}", disabled=(db_status and not is_admin), label_visibility="collapsed")
