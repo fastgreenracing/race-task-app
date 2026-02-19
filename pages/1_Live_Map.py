@@ -41,8 +41,15 @@ with st.sidebar:
             lat_val = location['coords']['latitude']
             lon_val = location['coords']['longitude']
             
-            # Helper to get initials (e.g., "Ben DeWitt" -> "BD")
-            initials = "".join([n[0].upper() for n in staff_name.split() if n])
+            # Robust Initials Logic
+            try:
+                parts = staff_name.split()
+                if len(parts) >= 2:
+                    initials = (parts[0][0] + parts[-1][0]).upper()
+                else:
+                    initials = parts[0][:2].upper()
+            except:
+                initials = "??"
 
             db.collection("staff_locations").document(staff_name).set({
                 "name": staff_name,
@@ -61,7 +68,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
 
-# --- 2. STAFF TRACKER (ADVANCED PYDECK MAP) ---
+# --- 2. STAFF TRACKER (PYDECK MAP) ---
 @st.fragment(run_every=30)
 def show_staff_map():
     st.subheader("🏃 Live Staff Positions")
@@ -73,7 +80,7 @@ def show_staff_map():
         if "latitude" in d and "longitude" in d:
             loc_data.append({
                 "name": d["name"],
-                "initials": d.get("initials", "?"), 
+                "initials": d.get("initials", "??"), 
                 "latitude": d["latitude"], 
                 "longitude": d["longitude"]
             })
@@ -81,7 +88,6 @@ def show_staff_map():
     if loc_data:
         df = pd.DataFrame(loc_data)
         
-        # Define the view state (Center of Ventura/Ojai area)
         view_state = pdk.ViewState(
             latitude=df["latitude"].mean(),
             longitude=df["longitude"].mean(),
@@ -89,31 +95,33 @@ def show_staff_map():
             pitch=0
         )
 
-        # Layer 1: The Green Dots
+        # The Green Dots
         icon_layer = pdk.Layer(
             "ScatterplotLayer",
             data=df,
             get_position="[longitude, latitude]",
-            get_color="[40, 167, 69, 200]", # Fast Green
-            get_radius=100,
+            get_color="[40, 167, 69, 200]",
+            get_radius=120,
+            pickable=True
         )
 
-        # Layer 2: The Initials Text
+        # The Initials Labels
         text_layer = pdk.Layer(
             "TextLayer",
             data=df,
             get_position="[longitude, latitude]",
             get_text="initials",
-            get_size=20,
-            get_color="[0, 0, 0, 255]", # Black text
+            get_size=22,
+            get_color="[0, 0, 0, 255]",
             get_alignment_baseline="'bottom'",
-            get_pixel_offset="[0, -15]" # Moves text slightly above the dot
+            get_pixel_offset="[0, -12]"
         )
 
-        st.pydeck_widget(pdk.Deck(
+        # FIXED COMMAND: st.pydeck_chart instead of st.pydeck_widget
+        st.pydeck_chart(pdk.Deck(
             layers=[icon_layer, text_layer],
             initial_view_state=view_state,
-            map_style="mapbox://styles/mapbox/light-v9", # Clean light style
+            map_style="mapbox://styles/mapbox/light-v9",
             tooltip={"text": "{name}"}
         ))
     else:
