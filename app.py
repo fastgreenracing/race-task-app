@@ -32,28 +32,31 @@ st.markdown(
     }}
     
     /* --- SIDEBAR TOGGLE FIX --- */
-    /* This targets the internal container of the toggle to create the black box */
+    /* Black border box targeting only the toggle container */
     [data-testid="stSidebar"] .stToggle {{
         border: 3px solid black !important;
         border-radius: 12px !important;
-        padding: 10px 10px 10px 5px !important;
+        padding: 8px 12px !important;
         background-color: white !important;
         width: 100% !important;
         display: flex !important;
+        align-items: center !important;
     }}
 
-    /* Scale the label/switch to 75% so it fits the sidebar width without wrapping */
+    /* SHRINK BOTH SWITCH AND TEXT BY 30% (Scale to 0.7) */
     [data-testid="stSidebar"] .stToggle > label {{
-        transform: scale(0.75);
+        transform: scale(0.7); 
         transform-origin: left center;
-        width: 130% !important;
+        width: 140% !important; /* Expansion factor to offset scale shrinkage */
+        margin: 0 !important;
     }}
 
     [data-testid="stSidebar"] .stToggle label p {{
-        font-size: 20px !important;
+        font-size: 18px !important; /* Reduced 30% from 26px */
         font-weight: 900 !important;
         color: black !important;
-        white-space: nowrap !important; /* Forces text to stay on one line */
+        white-space: nowrap !important;
+        line-height: 1 !important;
     }}
 
     /* --- USER SIDE TASK CARDS --- */
@@ -130,7 +133,7 @@ with st.sidebar:
         for c in cats:
             c_data = get_cat_data(c)
             with st.expander(f"Edit {c}"):
-                # Standard toggle - CSS handles the box/border now
+                # Toggle - CSS handles the box/border now
                 new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
                 
                 new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"n_{c}")
