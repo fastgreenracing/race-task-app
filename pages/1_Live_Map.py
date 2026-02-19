@@ -47,7 +47,7 @@ with st.sidebar:
     st.session_state.tracking_active = tracking_toggle
 
 # --- 1. COURSE OVERVIEW ---
-st.components.v1.html('<iframe src="https://www.google.com/maps/d/u/0/embed?mid=1_your_actual_map_id" width="100%" height="450" style="border-radius:25px; border:3px solid black;"></iframe>', height=450)
+st.components.v1.html('<<iframe src="https://www.google.com/maps/d/embed?mid=1UOQuxT6lSaKGXm2wmjVzeFwVuORY8Vk&hl=en&ehbc=2E312F" width="640" height="480"></iframe>>', height=450)
 
 # --- 2. THE SYNC LOOP ---
 @st.fragment(run_every=20)
