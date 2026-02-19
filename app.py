@@ -1,3 +1,7 @@
+I have integrated Delete functionality for both categories and individual tasks directly into the sidebar management sections. I also added a safety check for category deletion to ensure you don't accidentally wipe out an entire section of your race logistics.
+
+Full Updated app.py
+Python
 import streamlit as st
 from google.cloud import firestore
 import json
@@ -67,7 +71,6 @@ def get_now():
 # --- DATA FUNCTIONS ---
 def get_categories():
     cat_ref = db.collection("settings").document("categories").get()
-    # Now returns a list of dicts: {"name": str, "order": int}
     if cat_ref.exists:
         data = cat_ref.to_dict().get("data", [])
         return sorted(data, key=lambda x: x.get('order', 0))
@@ -89,7 +92,7 @@ def set_cat_status(cat_name, status, note=None):
         data["timestamp"] = get_now() if note else ""
     db.collection("settings").document(f"status_{safe_id}").set(data, merge=True)
 
-# --- SIDEBAR: ADMIN & REORDERING ---
+# --- SIDEBAR: ADMIN ---
 with st.sidebar:
     st.header("🔐 Access Control")
     pwd = st.text_input("Admin Password", type="password")
@@ -97,9 +100,9 @@ with st.sidebar:
     
     if is_admin:
         st.success("Admin Mode")
-        current_cats = get_categories() # List of dicts
+        current_cats = get_categories()
         
-        # --- CATEGORY REORDERING & MANAGEMENT ---
+        # --- CATEGORY MANAGEMENT ---
         st.divider()
         st.subheader("📁 Manage Categories")
         
@@ -119,24 +122,40 @@ with st.sidebar:
                 save_categories(current_cats)
                 st.rerun()
 
-        # --- TASK REORDERING & MANAGEMENT ---
+        with st.expander("🗑️ Delete Category"):
+            cat_names = [c['name'] for c in current_cats]
+            cat_to_del = st.selectbox("Select Category to Remove", [""] + cat_names)
+            if cat_to_del:
+                st.warning(f"This will remove '{cat_to_del}'. Tasks will remain in the database but won't be visible.")
+                if st.button("Confirm Delete Category", type="primary"):
+                    updated_cats = [c for c in current_cats if c['name'] != cat_to_del]
+                    save_categories(updated_cats)
+                    st.rerun()
+
+        # --- TASK MANAGEMENT ---
         st.divider()
         st.subheader("📝 Manage Tasks")
         
-        with st.expander("🔢 Reorder Tasks"):
-            sel_cat = st.selectbox("Select Category", [c['name'] for c in current_cats], key="reorder_task_cat")
+        with st.expander("🔢 Reorder / 🗑️ Delete Tasks"):
+            sel_cat = st.selectbox("Select Category", [c['name'] for c in current_cats], key="manage_task_cat")
             tasks = db.collection("race_tasks").where("category", "==", sel_cat).order_by("sort_order").stream()
             for t in tasks:
                 td = t.to_dict()
-                new_t_order = st.number_input(f"Order: {td['title']}", value=td.get('sort_order', 0), key=f"re_{t.id}")
-                if st.button(f"Update {td['title'][:15]}...", key=f"btn_re_{t.id}"):
+                col_re, col_del = st.columns([3, 1])
+                with col_re:
+                    new_t_order = st.number_input(f"Order: {td['title'][:15]}", value=td.get('sort_order', 0), key=f"re_{t.id}")
+                with col_del:
+                    if st.button("🗑️", key=f"del_{t.id}"):
+                        db.collection("race_tasks").document(t.id).delete()
+                        st.rerun()
+                if st.button(f"Update Order: {td['title'][:15]}", key=f"btn_re_{t.id}"):
                     db.collection("race_tasks").document(t.id).update({"sort_order": new_t_order})
                     st.rerun()
 
         with st.expander("➕ Add Task"):
             t_cat = st.selectbox("Category", [c['name'] for c in current_cats], key="add_t_cat")
             t_title = st.text_input("Task Title")
-            t_order = st.number_input("Sort Position", value=0)
+            t_order = st.number_input("Sort Position", value=0, key="add_t_order")
             if st.button("Add Task"):
                 db.collection("race_tasks").add({
                     "category": t_cat,
