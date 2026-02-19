@@ -23,7 +23,6 @@ st.markdown(
         background-size: cover;
         background-position: center;
     }}
-    /* Main Container */
     .main .block-container {{
         background-color: rgba(255, 255, 255, 0.95); 
         padding: 3rem;
@@ -32,24 +31,18 @@ st.markdown(
         margin-bottom: 2rem;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
     }}
-    
-    /* ENLARGE CHECKBOXES AND BOLD OUTLINE */
     [data-testid="stCheckbox"] {{
         transform: scale(2.2);
         margin-left: 25px;
         margin-top: 10px;
     }}
-    
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
         background-color: white !important;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
     }}
-
     [data-testid="stCheckbox"] div {{
         border: none !important;
     }}
-    
     h1 {{
         color: #000000 !important;
         font-family: 'Helvetica Neue', sans-serif;
@@ -128,16 +121,14 @@ def show_tasks():
         is_go = c_data.get("completed", False)
         light_color = "#22c55e" if is_go else "#ef4444"
         status_text = "GO" if is_go else "NO GO"
-        status_text_color = "#166534" if is_go else "#991b1b" # Darker green/red for text readability
+        status_text_color = "#166534" if is_go else "#991b1b"
         
-        # Header Layout: Category Name | Status Indicator
         col_name, col_indicator = st.columns([6, 4])
         
         with col_name:
             st.markdown(f"<h1 style='font-size: 38px; margin: 0;'>📍 {cat}</h1>", unsafe_allow_html=True)
         
         with col_indicator:
-            # Indicator Container: Includes Label, Circle, and Sub-message
             st.markdown(
                 f"""
                 <div style="display: flex; align-items: center; justify-content: flex-end;">
