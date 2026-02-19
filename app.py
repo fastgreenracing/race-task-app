@@ -31,19 +31,31 @@ st.markdown(
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
     }}
     
-    /* CLEANER SIDEBAR - Removed the restrictive black box that caused vertical text */
-    [data-testid="stSidebar"] [data-testid="stExpander"] {{
-        border: 1px solid #ddd !important;
-        border-radius: 8px !important;
-    }}
-    
-    [data-testid="stSidebar"] .stToggle label p {{
-        font-size: 18px !important;
-        font-weight: bold !important;
-        color: #000 !important;
+    /* --- SIDEBAR CUSTOMIZATION --- */
+    /* Black border box for the admin toggle */
+    .admin-toggle-box {{
+        border: 3px solid black !important;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 10px;
+        background-color: white;
     }}
 
-    /* User Side Task Card Styling */
+    /* SHRINK THE TOGGLE ONLY IN THE SIDEBAR */
+    [data-testid="stSidebar"] .stToggle {{
+        transform: scale(0.7); /* Shrinks the switch to 70% size */
+        transform-origin: left center;
+        margin-right: -20px; /* Offset the scale gap */
+    }}
+
+    [data-testid="stSidebar"] .stToggle label p {{
+        font-size: 24px !important;
+        font-weight: 900 !important;
+        color: black !important;
+        line-height: 1.2 !important;
+    }}
+
+    /* --- USER SIDE TASK CARDS --- */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -117,8 +129,11 @@ with st.sidebar:
         for c in cats:
             c_data = get_cat_data(c)
             with st.expander(f"Edit {c}"):
-                # Removed the container border here to stop the text "squish"
+                # Wrap toggle in custom CSS class for the black box
+                st.markdown('<div class="admin-toggle-box">', unsafe_allow_html=True)
                 new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
+                st.markdown('</div>', unsafe_allow_html=True)
+                
                 new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"n_{c}")
                 if st.button("Save", key=f"up_{c}"):
                     set_cat_status(c, new_s, new_n)
@@ -143,7 +158,6 @@ def show_tasks():
             is_go = c_data.get("completed", False)
             s_text = "GO" if is_go else "NO GO"
             s_color = "green" if is_go else "red"
-            # Centered STATUS vertically over GO/NO GO with zero custom HTML containers to avoid leaks
             st.markdown(f"""
                 <div style="text-align: center; width: 100%;">
                     <p style="margin-bottom: -5px; font-weight: bold; font-size: 20px; color: #000; text-transform: uppercase;">STATUS</p>
