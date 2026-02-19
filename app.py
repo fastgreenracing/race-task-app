@@ -10,7 +10,7 @@ db = firestore.Client.from_service_account_info(key_dict)
 
 st.set_page_config(page_title="Race Logistics", page_icon="🏃", layout="wide")
 
-# --- CUSTOM BACKGROUND & THEMING ---
+# --- CSS FOR UI (SAFE FROM CODE-BLOCK DETECTION) ---
 BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?auto=format&fit=crop&w=2070&q=80"
 
 st.markdown(
@@ -28,16 +28,15 @@ st.markdown(
         padding: 3rem;
         border-radius: 25px;
         margin-top: 2rem;
-        margin-bottom: 2rem;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
     }}
-    /* The Card Styling */
+    /* Standard Task Card Styling */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
         padding: 20px !important;
         margin-bottom: 15px !important;
-        background-color: rgba(255, 255, 255, 0.5);
+        background-color: rgba(255, 255, 255, 0.6);
     }}
     [data-testid="stCheckbox"] {{
         transform: scale(2.2);
@@ -46,11 +45,14 @@ st.markdown(
     }}
     [data-testid="stCheckbox"] div[role="checkbox"] {{
         border: 3px solid black !important;
-        background-color: white !important;
     }}
-    h1 {{
-        color: #000000 !important;
-        font-family: 'Helvetica Neue', sans-serif;
+    /* Status Light Style */
+    .status-bulb {{
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        border: 4px solid black;
+        margin: auto;
     }}
     </style>
     """,
@@ -84,16 +86,13 @@ def set_cat_status(cat_name, status, note=None, show_start=False):
         data["timestamp"] = get_now() if note else ""
     db.collection("settings").document(f"status_{safe_id}").set(data, merge=True)
 
-# --- SIDEBAR ---
+# --- SIDEBAR: ADMIN ---
 with st.sidebar:
     st.header("🔐 Access Control")
     pwd = st.text_input("Admin Password", type="password")
     is_admin = (pwd == ADMIN_PASSWORD)
-    st.session_state.admin_logged_in = is_admin
-
     if is_admin:
-        st.success("Admin Mode: Active")
-        st.divider()
+        st.success("Admin Mode")
         cats = get_categories()
         for c in cats:
             c_data = get_cat_data(c)
@@ -112,48 +111,45 @@ def show_tasks():
     categories = get_categories()
     
     for cat in categories:
-        st.markdown("<hr style='border: 2px solid #333; margin-top: 40px;'>", unsafe_allow_html=True)
-        
+        st.divider()
         c_data = get_cat_data(cat)
-        is_go = c_data.get("completed", False)
-        l_color = "#22c55e" if is_go else "#ef4444"
-        s_text = "GO" if is_go else "NO GO"
-        s_color = "#166534" if is_go else "#991b1b"
         
-        # FINAL ATTEMPT FIX: Building HTML string outside the markdown call to prevent code-block detection
-        start_html = f"<div style='color:black; font-weight:bold; font-size:14px; text-align:center; margin-top:5px;'>Go ahead and start.<br>See note.</div>" if c_data.get("show_start_msg") else ""
+        # CATEGORY HEADER USING STREAMLIT COLUMNS (NO CUSTOM HTML TAGS)
+        col_name, col_status_text, col_bulb = st.columns([6, 2, 2])
         
-        header_template = f"""
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%; margin-bottom:20px;">
-            <div style="font-size:38px; font-weight:bold; color:black;">📍 {cat}</div>
-            <div style="display:flex; align-items:center;">
-                <div style="text-align:right; margin-right:15px;">
-                    <div style="font-size:12px; font-weight:bold; color:#333;">STATUS</div>
-                    <div style="font-size:32px; font-weight:900; color:{s_color};">{s_text}</div>
-                </div>
-                <div style="display:flex; flex-direction:column; align-items:center;">
-                    <div style="width:55px; height:55px; background-color:{l_color}; border-radius:50%; border:4px solid black;"></div>
-                    {start_html}
-                </div>
-            </div>
-        </div>
-        """
-        st.markdown(header_template, unsafe_allow_html=True)
-        
+        with col_name:
+            st.header(f"📍 {cat}")
+            
+        with col_status_text:
+            is_go = c_data.get("completed", False)
+            s_text = "GO" if is_go else "NO GO"
+            s_color = "green" if is_go else "red"
+            st.markdown(f"**STATUS**\n### :{s_color}[{s_text}]")
+            
+        with col_bulb:
+            l_color = "#22c55e" if is_go else "#ef4444"
+            # Simple single-line HTML for the circle ONLY
+            st.markdown(f'<div class="status-bulb" style="background-color: {l_color};"></div>', unsafe_allow_html=True)
+            if c_data.get("show_start_msg"):
+                st.write("**Go ahead and start. See note.**")
+
+        # Status Note
         if c_data.get("note"):
-            st.markdown(f"<div style='background-color:#e1f5fe; padding:15px; border-radius:10px; border-left:8px solid #03a9f4; margin-bottom:20px; color:black;'><strong>Note:</strong> {c_data['note']}<br><small>Updated: {c_data.get('timestamp')}</small></div>", unsafe_allow_html=True)
+            st.info(f"**Note:** {c_data['note']} \n\n *Updated: {c_data.get('timestamp')}*")
         
+        # TASK LIST
         tasks_query = db.collection("race_tasks").where("category", "==", cat).order_by("sort_order").stream()
         for task in tasks_query:
             td = task.to_dict()
             db_status = td.get("completed", False)
-            cols = st.columns([1.2, 0.8, 6.0, 2]) if is_admin else st.columns([1.5, 8.5])
-            with cols[0]:
+            
+            # Using standard Streamlit columns for the task boxes
+            t_cols = st.columns([1.5, 8.5])
+            with t_cols[0]:
                 check = st.checkbox("", value=db_status, key=f"w_{task.id}_{db_status}", disabled=(db_status and not is_admin), label_visibility="collapsed")
                 if check != db_status:
                     db.collection("race_tasks").document(task.id).update({"completed": check}); st.rerun()
-            text_col = cols[2] if is_admin else cols[1]
-            with text_col:
+            with t_cols[1]:
                 icon = '✅' if db_status else '⏳'
                 st.markdown(f"### {icon} {td['title']}")
                 if td.get("notes"): st.info(f"📝 {td['notes']}")
