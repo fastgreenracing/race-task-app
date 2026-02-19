@@ -31,28 +31,32 @@ st.markdown(
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
     }}
     
-    /* --- SIDEBAR CUSTOMIZATION --- */
-    /* Black border box for the admin toggle */
-    .admin-toggle-box {{
+    /* --- SIDEBAR FIX --- */
+    /* Target the built-in Streamlit toggle container to add the border */
+    /* This prevents the "double box" issue */
+    [data-testid="stSidebar"] .stToggle {{
         border: 3px solid black !important;
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 10px;
-        background-color: white;
+        border-radius: 12px !important;
+        padding: 10px 15px !important;
+        background-color: white !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
     }}
 
-    /* SHRINK THE TOGGLE ONLY IN THE SIDEBAR */
-    [data-testid="stSidebar"] .stToggle {{
-        transform: scale(0.7); /* Shrinks the switch to 70% size */
+    /* SHRINK TOGGLE SWITCH AND TEXT */
+    [data-testid="stSidebar"] .stToggle > label {{
+        transform: scale(0.65); /* Shrink both switch and text to 65% */
         transform-origin: left center;
-        margin-right: -20px; /* Offset the scale gap */
+        width: 150% !important; /* Counteract the shrink to keep it clickable */
     }}
 
     [data-testid="stSidebar"] .stToggle label p {{
-        font-size: 24px !important;
+        font-size: 20px !important;
         font-weight: 900 !important;
         color: black !important;
-        line-height: 1.2 !important;
+        white-space: nowrap !important;
     }}
 
     /* --- USER SIDE TASK CARDS --- */
@@ -129,10 +133,8 @@ with st.sidebar:
         for c in cats:
             c_data = get_cat_data(c)
             with st.expander(f"Edit {c}"):
-                # Wrap toggle in custom CSS class for the black box
-                st.markdown('<div class="admin-toggle-box">', unsafe_allow_html=True)
+                # Toggle switch (now styled via CSS above)
                 new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c}")
-                st.markdown('</div>', unsafe_allow_html=True)
                 
                 new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"n_{c}")
                 if st.button("Save", key=f"up_{c}"):
