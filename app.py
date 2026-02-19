@@ -38,6 +38,7 @@ st.markdown(
         margin-bottom: 30px;
         border-radius: 5px;
     }}
+    /* User Side Task Card Styling */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {{
         border: 3px solid black !important;
         border-radius: 15px;
@@ -49,6 +50,9 @@ st.markdown(
         transform: scale(2.2);
         margin-left: 25px;
         margin-top: 10px;
+    }}
+    [data-testid="stCheckbox"] div[role="checkbox"] {{
+        border: 3px solid black !important;
     }}
     </style>
     """,
@@ -90,124 +94,52 @@ def set_cat_status(cat_name, status, note=None):
         data["timestamp"] = get_now() if note else ""
     db.collection("settings").document(f"status_{safe_id}").set(data, merge=True)
 
-# --- SIDEBAR: ADMIN ---
+# --- SIDEBAR: CATEGORY & TASK MANAGEMENT ---
 with st.sidebar:
     st.header("🔐 Access Control")
     pwd = st.text_input("Admin Password", type="password")
     is_admin = (pwd == ADMIN_PASSWORD)
+    st.session_state.admin_logged_in = is_admin
     
     if is_admin:
         st.success("Admin Mode")
         current_cats = get_categories()
         
-        # --- CATEGORY MANAGEMENT ---
+        # --- STRUCTURE MANAGEMENT ---
         st.divider()
         st.subheader("📁 Manage Categories")
-        
         with st.expander("🔢 Move / 📝 Rename / 🗑️ Delete"):
             for i, cat in enumerate(current_cats):
                 col_name, col_up, col_down, col_del = st.columns([4, 1, 1, 1])
                 col_name.write(f"**{cat['name']}**")
-                
                 if col_up.button("🔼", key=f"cat_up_{i}") and i > 0:
                     current_cats[i], current_cats[i-1] = current_cats[i-1], current_cats[i]
-                    save_categories(current_cats)
-                    st.rerun()
-                
+                    save_categories(current_cats); st.rerun()
                 if col_down.button("🔽", key=f"cat_down_{i}") and i < len(current_cats)-1:
                     current_cats[i], current_cats[i+1] = current_cats[i+1], current_cats[i]
-                    save_categories(current_cats)
-                    st.rerun()
-                
+                    save_categories(current_cats); st.rerun()
                 if col_del.button("🗑️", key=f"cat_del_{i}"):
-                    current_cats.pop(i)
-                    save_categories(current_cats)
-                    st.rerun()
+                    current_cats.pop(i); save_categories(current_cats); st.rerun()
                 
-                # RENAME CATEGORY
-                new_c_name = st.text_input("Rename to:", value=cat['name'], key=f"rename_cat_in_{i}")
+                new_c_name = st.text_input("Rename:", value=cat['name'], key=f"ren_c_{i}")
                 if new_c_name != cat['name']:
-                    if st.button(f"Confirm Rename '{cat['name']}'", key=f"conf_ren_cat_{i}"):
-                        old_name = cat['name']
-                        cat['name'] = new_c_name
-                        save_categories(current_cats)
-                        # Migrate tasks to new category name
-                        tasks_to_migrate = db.collection("race_tasks").where("category", "==", old_name).stream()
-                        for t in tasks_to_migrate:
+                    if st.button(f"Confirm Rename", key=f"conf_ren_{i}"):
+                        old = cat['name']; cat['name'] = new_c_name; save_categories(current_cats)
+                        for t in db.collection("race_tasks").where("category", "==", old).stream():
                             db.collection("race_tasks").document(t.id).update({"category": new_c_name})
                         st.rerun()
-                st.divider()
 
-        with st.expander("➕ Add Category"):
-            new_cat_name = st.text_input("New Category Name")
-            if st.button("Create Category"):
-                current_cats.append({"name": new_cat_name, "order": len(current_cats)})
-                save_categories(current_cats)
-                st.rerun()
-
-        # --- TASK MANAGEMENT ---
         st.divider()
         st.subheader("📝 Manage Tasks")
-        
-        with st.expander("🔢 Move / 📝 Edit / 🗑️ Delete"):
-            sel_cat = st.selectbox("Select Category", [c['name'] for c in current_cats], key="manage_task_cat")
-            tasks_stream = db.collection("race_tasks").where("category", "==", sel_cat).order_by("sort_order").stream()
-            tasks = [t for t in tasks_stream]
-            
-            for i, t in enumerate(tasks):
-                td = t.to_dict()
-                col_t_up, col_t_down, col_t_del = st.columns([1, 1, 1])
-                
-                if col_t_up.button("🔼", key=f"t_up_{t.id}") and i > 0:
-                    prev_t = tasks[i-1]
-                    db.collection("race_tasks").document(t.id).update({"sort_order": i-1})
-                    db.collection("race_tasks").document(prev_t.id).update({"sort_order": i})
-                    st.rerun()
-                
-                if col_t_down.button("🔽", key=f"t_down_{t.id}") and i < len(tasks)-1:
-                    next_t = tasks[i+1]
-                    db.collection("race_tasks").document(t.id).update({"sort_order": i+1})
-                    db.collection("race_tasks").document(next_t.id).update({"sort_order": i})
-                    st.rerun()
-                    
-                if col_t_del.button("🗑️", key=f"t_del_{t.id}"):
-                    db.collection("race_tasks").document(t.id).delete()
-                    st.rerun()
-
-                # EDIT TASK TITLE
-                new_t_title = st.text_input("Edit Title:", value=td['title'], key=f"edit_t_{t.id}")
-                if new_t_title != td['title']:
-                    if st.button(f"Save New Title", key=f"save_t_{t.id}"):
-                        db.collection("race_tasks").document(t.id).update({"title": new_t_title})
-                        st.rerun()
-                st.divider()
-
         with st.expander("➕ Add Task"):
             t_cat = st.selectbox("Category", [c['name'] for c in current_cats], key="add_t_cat")
             t_title = st.text_input("Task Title")
             if st.button("Add Task"):
                 existing = db.collection("race_tasks").where("category", "==", t_cat).get()
-                db.collection("race_tasks").add({
-                    "category": t_cat,
-                    "title": t_title,
-                    "completed": False,
-                    "sort_order": len(existing)
-                })
+                db.collection("race_tasks").add({"category": t_cat, "title": t_title, "completed": False, "sort_order": len(existing)})
                 st.rerun()
 
-        # --- STATUS CONTROL ---
-        st.divider()
-        st.subheader("🚥 Live Status Control")
-        for c in current_cats:
-            c_data = get_cat_data(c['name'])
-            with st.expander(f"Edit {c['name']} Status"):
-                new_s = st.toggle("Ready (GO)", value=c_data.get("completed", False), key=f"t_{c['name']}")
-                new_n = st.text_input("Note", value=c_data.get("note", ""), key=f"n_{c['name']}")
-                if st.button("Save Status", key=f"up_{c['name']}"):
-                    set_cat_status(c['name'], new_s, new_n)
-                    st.rerun()
-
-# --- MAIN DISPLAY ---
+# --- MAIN DISPLAY (AUTO-REFRESHING) ---
 @st.fragment(run_every=5)
 def show_tasks():
     is_admin = st.session_state.get('admin_logged_in', False)
@@ -221,6 +153,14 @@ def show_tasks():
         col_name, col_status_group = st.columns([7, 3])
         with col_name:
             st.header(f"📍 {cat}")
+            # ADMIN ONLY: Live Status Toggle within the refreshing fragment
+            if is_admin:
+                new_s = st.toggle("Category Ready (GO)", value=c_data.get("completed", False), key=f"live_t_{cat}")
+                new_n = st.text_input("Status Note", value=c_data.get("note", ""), key=f"live_n_{cat}")
+                if st.button("Update Status", key=f"live_btn_{cat}"):
+                    set_cat_status(cat, new_s, new_n)
+                    st.rerun()
+
         with col_status_group:
             is_go = c_data.get("completed", False)
             s_text = "GO" if is_go else "NO GO"
@@ -237,7 +177,8 @@ def show_tasks():
             with t_cols[0]:
                 check = st.checkbox("", value=td.get("completed", False), key=f"w_{task.id}", disabled=(td.get("completed") and not is_admin), label_visibility="collapsed")
                 if check != td.get("completed"):
-                    db.collection("race_tasks").document(task.id).update({"completed": check}); st.rerun()
+                    db.collection("race_tasks").document(task.id).update({"completed": check})
+                    # No rerun needed here because fragment handles it
             with t_cols[1]:
                 icon = '✅ ' if td.get("completed") else ''
                 st.markdown(f"### {icon}{td['title']}")
