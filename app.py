@@ -48,17 +48,21 @@ st.markdown(
         background-color: rgba(255, 255, 255, 0.6);
     }}
 
-    /* CHECKBOX SCALING & STYLE */
+    /* CHECKBOX SCALING & FORCED GREEN COLOR */
     [data-testid="stCheckbox"] {{
         transform: scale(2.2);
         margin-left: 25px;
         margin-top: 10px;
     }}
     
-    /* Force checkbox to turn green when checked */
+    /* This targets the inner checkbox background specifically */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {{
+        background: #28a745 !important;
+    }}
+    
+    /* This targets the SVG background to kill the red for good */
+    [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] > div {{
         background-color: #28a745 !important;
-        border-color: #28a745 !important;
     }}
 
     /* Standard border when unchecked */
@@ -173,7 +177,6 @@ def show_tasks():
                     db.collection("race_tasks").document(task.id).update({"completed": check})
                     st.rerun()
             with t_cols[1]:
-                # REMOVED the redundant icon logic here
                 st.markdown(f"### {td['title']}")
 
 show_tasks()
