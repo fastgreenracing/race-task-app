@@ -70,13 +70,19 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title("🏃 Fast Green Racing: Live Tracker")
+st.title("Fast Green Racing: Live Tracker")
+
+# --- COURSE MAP SECTION ---
+# DROP YOUR URL BELOW (Line 88)
+map_url = <iframe src="https://www.google.com/maps/d/embed?mid=1UOQuxT6lSaKGXm2wmjVzeFwVuORY8Vk&hl=en&ehbc=2E312F" width="640" height="480"></iframe>"
+
+with st.expander("📍 VIEW COURSE MAP & PERTINENT SPOTS", expanded=True):
+    st.components.v1.iframe(map_url, height=500, scrolling=True)
 
 # --- ADMIN SETTINGS & PERSISTENCE ---
 ADMIN_PASSWORD = "fastgreen2026" 
 TIMEZONE = "US/Pacific"
 
-# Initialize Login State
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
