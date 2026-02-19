@@ -8,7 +8,7 @@ import pytz
 key_dict = json.loads(st.secrets["textkey"])
 db = firestore.Client.from_service_account_info(key_dict)
 
-# THEME OVERRIDE: This is the cleanest way to kill the red for good
+# THEME OVERRIDE: Global Primary Color to Green
 st.set_page_config(
     page_title="Race Logistics", 
     page_icon="🏃", 
@@ -16,7 +16,7 @@ st.set_page_config(
 )
 
 # --- CSS FOR UI ---
-BACKGROUND_IMAGE_URL = "https://photos.smugmug.com/Mountains-2-Beach-Marathons/2018-Clif-Bar-Mountains-to-Beach-Marathon-Half/M2B-2018-Full-Marathon/M2B-2018-Full-Marathon-The-Start/i-dfXFsF4/2/KhM2r3JQqVtWPLHJdSsTbZzbPRTQp8fjhcHzQ2rCN/X2/DHHolmes_180527_DH0114_M2B-X2.jpg"
+BACKGROUND_IMAGE_URL = "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?auto=format&fit=crop&w=2070&q=80"
 
 st.markdown(
     f"""
@@ -80,7 +80,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title("Fast Green Racing: Live Tracker")
+st.title("🏃 Fast Green Racing: Live Tracker")
 
 # --- ADMIN SETTINGS ---
 ADMIN_PASSWORD = "fastgreen2026" 
@@ -115,7 +115,7 @@ def set_cat_status(cat_name, status, note=None):
         data["timestamp"] = get_now() if note else ""
     db.collection("settings").document(f"status_{safe_id}").set(data, merge=True)
 
-# --- SIDEBAR: ALL ADMIN FUNCTIONS ---
+# --- SIDEBAR: ADMIN ---
 with st.sidebar:
     st.header("🔐 Access Control")
     pwd = st.text_input("Admin Password", type="password")
@@ -137,7 +137,7 @@ with st.sidebar:
                 if st.button("Save", key=f"sb_btn_{c['name']}"):
                     set_cat_status(c['name'], new_s, new_n); st.rerun()
 
-        # 2. CATEGORY ADMIN (Move/Rename/Delete)
+        # 2. CATEGORY ADMIN
         st.divider()
         st.subheader("📁 Manage Categories")
         with st.expander("Move / Rename / Delete"):
@@ -161,7 +161,7 @@ with st.sidebar:
                             db.collection("race_tasks").document(t.id).update({"category": new_c_name})
                         st.rerun()
 
-        # 3. TASK ADMIN (Move/Rename/Delete/Add)
+        # 3. TASK ADMIN
         st.divider()
         st.subheader("📝 Manage Tasks")
         with st.expander("Move / Edit / Delete Existing"):
@@ -180,9 +180,8 @@ with st.sidebar:
                     db.collection("race_tasks").document(t.id).delete(); st.rerun()
                 
                 new_title = st.text_input("Edit Title:", value=td['title'], key=f"edt_{t.id}")
-                if new_title != td['title']:
-                    if st.button("Save Title", key=f"savt_{t.id}"):
-                        db.collection("race_tasks").document(t.id).update({"title": new_title}); st.rerun()
+                if st.button("Save Title", key=f"savt_{t.id}"):
+                    db.collection("race_tasks").document(t.id).update({"title": new_title}); st.rerun()
                 st.divider()
 
         with st.expander("➕ Add New Task"):
@@ -204,7 +203,8 @@ def show_tasks():
         
         col_name, col_status_group = st.columns([7, 3])
         with col_name:
-            st.header(f"📍 {cat}")
+            # CATEGORY HEADER: Pin removed, Bold & Underlined
+            st.markdown(f"## <u>**{cat}**</u>", unsafe_allow_html=True)
         with col_status_group:
             is_go = c_data.get("completed", False)
             s_text = "GO" if is_go else "NO GO"
