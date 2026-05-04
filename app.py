@@ -1,3 +1,19 @@
+import streamlit as st
+from google.cloud import firestore
+import json
+from datetime import datetime
+import pytz
+
+# 1. Database Connection (MUST come before fragments)
+key_dict = json.loads(st.secrets["textkey"])
+db = firestore.Client.from_service_account_info(key_dict)
+
+# 2. Page Config (MUST be the first Streamlit command)
+st.set_page_config(
+    page_title="Race Logistics", 
+    page_icon="🏃", 
+    layout="wide"
+)
 # --- MAIN DISPLAY ---
 @st.fragment(run_every=5)
 def show_tasks():
