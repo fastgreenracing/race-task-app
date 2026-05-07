@@ -49,14 +49,13 @@ st.markdown("""
     
     /* 2. MAKE THE NATIVE BOX INVISIBLE BUT CLICKABLE */
     [data-testid="stCheckbox"] div[role="checkbox"] {
-        opacity: 0 !important; /* Hide the box */
+        opacity: 0 !important; 
         width: 40px !important;
         height: 40px !important;
         cursor: pointer !important;
     }
 
     /* 3. CREATE THE CUSTOM RED CHECKMARK */
-    /* This draws an 'L' shape and rotates it to look like a checkmark */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
@@ -71,7 +70,7 @@ st.markdown("""
         transform: rotate(45deg);
     }
 
-    /* 4. HIDE STREAMLIT'S NATIVE SVG SO IT DOESN'T OVERLAP */
+    /* 4. HIDE STREAMLIT'S NATIVE SVG */
     [data-testid="stCheckbox"] svg {
         display: none !important;
     }
@@ -88,8 +87,11 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 MILESTONES = [
-    "Staff on Site", "Volunteers on Site", "Announcers on Site", 
-    "Timers on Site", "Set up of Start Line is Finished", 
+    "Staff on Site", 
+    "Volunteers on Site", 
+    "Announcers on Site", 
+    "Timers on Site", 
+    "Set up of Start Line is Finished", 
     "Full Marathon Start is 100%-awaiting Go Ahead"
 ]
 
@@ -108,7 +110,7 @@ def render():
         st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
     elif director_signal or note_active: 
         msg = data.get("custom_note", "Okay to start ontime") if note_active else "Okay to start ontime"
-        st.markdown(f<div class='status-header' style='background:#008000;'><h1>🚀 {msg}</h1></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='status-header' style='background:#008000;'><h1>🚀 {msg}</h1></div>", unsafe_allow_html=True)
     elif count == 6:
         st.markdown("<div class='status-header' style='background:#FFD700; color:black;'><h1>⏳ WAITING FOR DIRECTOR</h1></div>", unsafe_allow_html=True)
     else:
