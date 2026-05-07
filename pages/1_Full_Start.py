@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- HORIZONTAL DIVIDER THEME ---
+# --- THICK DIVIDER THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -28,19 +28,14 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Milestone Row with Bottom Border */
+    /* Milestone Row with THICK Bottom Border */
     .milestone-row {
         display: flex;
         align-items: center;
-        min-height: 70px;
-        border-bottom: 1px solid #000000; /* The divider line */
-        padding: 5px 0;
+        min-height: 80px; /* Increased height for thicker borders */
+        border-bottom: 3px solid #000000; /* Bold Divider */
+        padding: 10px 0;
         background-color: transparent;
-    }
-
-    /* Remove the border from the very last item if desired */
-    .milestone-row:last-child {
-        border-bottom: none;
     }
 
     .milestone-text {
@@ -49,14 +44,14 @@ st.markdown("""
         color: #000000 !important;
         font-weight: bold !important;
         margin-left: 55px;
-        padding-top: 8px;
+        padding-top: 10px;
     }
 
     /* Invisible clickable area */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
-        width: 55px !important;
-        height: 55px !important;
+        width: 60px !important;
+        height: 60px !important;
         cursor: pointer !important;
     }
 
@@ -67,11 +62,11 @@ st.markdown("""
         visibility: visible !important;
         opacity: 1 !important;
         left: 5px;
-        top: -5px; 
-        width: 18px;
-        height: 38px;
+        top: -8px; 
+        width: 20px;
+        height: 42px;
         border: solid #FF0000;
-        border-width: 0 8px 8px 0;
+        border-width: 0 9px 9px 0; /* Thicker checkmark to match thick border */
         transform: rotate(45deg);
     }
 
@@ -135,7 +130,7 @@ def render():
         col_check, col_text = st.columns([0.05, 9.95])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"line_{m}")
+            val = st.checkbox("", value=checked, key=f"thick_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
