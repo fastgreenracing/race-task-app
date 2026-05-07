@@ -94,4 +94,27 @@ def render_dashboard():
         if count == 6 and not (director_approved or director_note_active or emergency_stop):
             st.subheader("Decision Authority")
             btn1, btn2 = st.columns(2)
-            with btn
+            with btn1:
+                if st.button("🚀 AUTHORIZE START", use_container_width=True):
+                    doc_ref.update({"director_signal": True, "note_active": False, "emergency_cancel": False})
+                    st.rerun()
+            with btn2:
+                note_text = st.text_input("Coordinator Instruction:", placeholder="Add notes...")
+                if st.button("📝 ISSUE WITH NOTE", use_container_width=True):
+                    if note_text:
+                        doc_ref.update({"director_signal": False, "note_active": True, "custom_note": note_text, "emergency_cancel": False})
+                        st.rerun()
+        
+        st.divider()
+        if director_approved or director_note_active or emergency_stop:
+            if st.button("🔄 SYSTEM RESET", use_container_width=True):
+                doc_ref.update({"director_signal": False, "note_active": False, "custom_note": "", "emergency_cancel": False})
+                st.rerun()
+        
+        st.markdown('<div class="emergency-btn">', unsafe_allow_html=True)
+        if st.button("⚠️ EMERGENCY CANCELLATION", use_container_width=True):
+            doc_ref.update({"director_signal": False, "note_active": False, "emergency_cancel": True, "custom_note": "RACE CANCELED"})
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+render_dashboard()
