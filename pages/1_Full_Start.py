@@ -12,16 +12,14 @@ else:
     st.error("Firestore secrets not found.")
     st.stop()
 
-# 2. Configuration - CRITICAL: This must match your Admin Category Name exactly
-# If your category is just "Full Start", change this line to: THIS_LOCATION = "Full Start"
+# 2. Configuration
 THIS_LOCATION = "Full Marathon Start"
 TIMEZONE = "US/Pacific"
 
 st.set_page_config(page_title=f"{THIS_LOCATION} Checklist", layout="wide")
 
 # --- CSS: Terminal Theme ---
-st.markdown(
-    """
+st.markdown("""
     <style>
     .stApp { background-color: #000000; color: #28a745; }
     h1, h2, h3, p, span, label, a { color: #28a745 !important; }
@@ -37,21 +35,19 @@ st.markdown(
     [data-testid="stCheckbox"] { transform: scale(2.5); margin-left: 30px; }
     .status-box { text-align: center; padding: 20px; border-radius: 15px; margin-bottom: 30px; }
     </style>
-    """,
-    unsafe_allow_html=True
-)
+    """, unsafe_allow_html=True)
 
 def get_now():
     return datetime.now(pytz.timezone(TIMEZONE)).strftime("%I:%M %p")
 
-# --- Ordered Milestones ---
+# --- THE DEFINITIVE MILESTONE LIST ---
 MILESTONES = [
     "Staff on Site",
     "Volunteers on Site",
     "Announcers on Site",
     "Timers on Site",
     "Set up of Start Line is Finished",
-    "Full Marathon Start is 100%-awaiting Go Ahead",
+    "Full Marathon Start is 100%-awaiting Go Ahead"
 ]
 
 @st.fragment(run_every=5)
@@ -59,24 +55,23 @@ def render_checklist():
     st.markdown('<a href="/" target="_self" class="main-link">⬅ Return to Ops Dashboard</a>', unsafe_allow_html=True)
     st.title(f"🏁 {THIS_LOCATION}")
     
-    # Get current status from site-specific collection
     doc_ref = db.collection("site_statuses").document("full_start")
     doc = doc_ref.get()
     data = doc.to_dict() if doc.exists else {}
 
-    # Logic: Only Ready if ALL milestones are True
+    # STRICT CALCULATION: Total count of checked milestones
     completed_count = sum(1 for m in MILESTONES if data.get(m, False))
-    is_fully_ready = (completed_count == len(MILESTONES))
+    total_needed = len(MILESTONES)
+    is_fully_ready = (completed_count == total_needed)
 
-    # 🚦 Site Lead Visual Status
+    # Site Lead Banner
     if is_fully_ready:
         st.markdown('<div class="status-box" style="background-color: #1b5e20; border: 3px solid #28a745;"><h1>GO FOR START</h1></div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'<div class="status-box" style="background-color: #4c0000; border: 3px solid #ff4b4b;"><h1>NO GO</h1><p>{completed_count} / {len(MILESTONES)} Milestones</p></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="status-box" style="background-color: #4c0000; border: 3px solid #ff4b4b;"><h1>NO GO</h1><p>{completed_count} / {total_needed} Milestones Cleared</p></div>', unsafe_allow_html=True)
 
     st.divider()
 
-    # Render Checklist
     for m in MILESTONES:
         is_checked = data.get(m, False)
         col_check, col_txt = st.columns([2, 8])
@@ -84,20 +79,19 @@ def render_checklist():
         with col_check:
             val = st.checkbox("", value=is_checked, key=f"m_{m}")
             if val != is_checked:
-                # 1. Update the milestone data
-                new_data = {m: val, f"{m}_time": get_now() if val else ""}
-                doc_ref.set(new_data, merge=True)
+                # Update individual item
+                doc_ref.set({m: val, f"{m}_time": get_now() if val else ""}, merge=True)
                 
-                # 2. Recalculate total readiness for the Master Dashboard
-                # We fetch fresh data to be sure
-                updated_data = doc_ref.get().to_dict() or {}
-                new_total = sum(1 for milestone in MILESTONES if updated_data.get(milestone, False))
-                master_ready = (new_total == len(MILESTONES))
+                # RE-FETCH AND RE-CALCULATE TO PREVENT "GHOST" GO SIGNALS
+                fresh_data = doc_ref.get().to_dict() or {}
+                fresh_count = sum(1 for milestone in MILESTONES if fresh_data.get(milestone, False))
                 
-                # 3. Force update to the Master Dashboard status record
+                # This boolean is what the Master Dashboard reads
+                master_ready_signal = (fresh_count == len(MILESTONES))
+                
                 safe_id = THIS_LOCATION.replace("/", "_").replace(" ", "_")
                 db.collection("settings").document(f"status_{safe_id}").set({
-                    "completed": master_ready,
+                    "completed": master_ready_signal,
                     "timestamp": get_now()
                 }, merge=True)
                 
