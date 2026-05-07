@@ -60,8 +60,8 @@ st.markdown("""
         left: 5px; 
         top: -15px; /* Nudged up to stay level with the text */
         padding: 5px 0 -150px 0 !important; 
-        width: 15px;
-        height: 32px;
+        width: 150px;
+        height: 150px;
         border: solid #FF0000;
         border-width: 0 7px 7px 0;
         transform: rotate(45deg);
