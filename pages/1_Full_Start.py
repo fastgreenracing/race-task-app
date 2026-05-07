@@ -46,7 +46,7 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 65px;
+        margin-left: 15px;
         display: flex;
         align-items: vertically center;
         line-height: 1 !important;
