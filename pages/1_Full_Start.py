@@ -8,7 +8,7 @@ db = firestore.Client.from_service_account_info(key_dict)
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- CLEAN WHITE THEME: CENTERED & BORDERLESS CHECKBOXES ---
+# --- CLEAN WHITE THEME: REMOVING INTERNAL CHECKBOX BORDERS ---
 st.markdown("""
     <style>
     .stApp {
@@ -34,34 +34,36 @@ st.markdown("""
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {
         border: 1px solid #000000 !important;
         border-radius: 2px;
-        padding: 8px 10px !important;
+        padding: 6px 10px !important;
         margin-bottom: 4px !important;
         background: #FFFFFF;
         display: flex;
-        align-items: center; /* Vertically centers the contents */
+        align-items: center;
     }
     
-    /* Remove the box around the checkmark itself */
-    [data-testid="stCheckbox"] div[role="checkbox"] {
+    /* STRIP ALL BORDERS AND BACKGROUNDS FROM THE INTERNAL CHECKBOX */
+    [data-testid="stCheckbox"] div[role="checkbox"],
+    [data-testid="stCheckbox"] div[data-testid="stWidgetLabel"] div {
         border: none !important;
         background: transparent !important;
+        background-color: transparent !important;
         box-shadow: none !important;
     }
 
-    /* Scale and position the checkmark */
-    [data-testid="stCheckbox"] { 
-        transform: scale(2.0); 
-        margin-left: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    /* Target the specific focus/active states that sometimes draw boxes */
+    [data-testid="stCheckbox"] div[role="checkbox"]:focus,
+    [data-testid="stCheckbox"] div[role="checkbox"]:active {
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
     }
 
-    /* Hide the standard checkbox background when unchecked to keep it "borderless" */
-    [data-testid="stCheckbox"] div[data-testid="stWidgetLabel"] {
-        display: none;
+    /* Scale the checkmark icon itself */
+    [data-testid="stCheckbox"] { 
+        transform: scale(2.2); 
+        margin-left: 5px;
     }
-    
+
     .status-header {
         padding: 25px;
         border: 2px solid #000000;
@@ -94,23 +96,4 @@ def render():
     elif note_active:
         st.markdown(f"<div class='status-header' style='background: #008000;'><p style='color:white !important; font-size: 16pt;'>DIRECTOR NOTE:</p><h1 style='color:white !important;'>{custom_note}</h1></div>", unsafe_allow_html=True)
     elif count == 6:
-        st.markdown("<div class='status-header' style='background: #FFD700;'><h1 style='color:black !important;'>WAITING FOR DIRECTOR</h1></div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div class='status-header' style='background: #EEEEEE;'><h1 style='color:black !important;'>PREPARING ({count}/6)</h1></div>", unsafe_allow_html=True)
-
-    st.divider()
-    for m in MILESTONES:
-        checked = data.get(m, False)
-        # Using columns to help with the side-by-side centering
-        col1, col2 = st.columns([0.4, 9.6])
-        with col1:
-            val = st.checkbox("", value=checked, key=f"m_{m}")
-            if val != checked:
-                doc_ref.set({m: val}, merge=True)
-                if not val: doc_ref.update({"director_signal": False, "note_active": False})
-                st.rerun()
-        with col2:
-            # Inline text with vertical padding to match the checkbox scale
-            st.markdown(f"<div style='padding-top:10px;'><b>{m}</b></div>", unsafe_allow_html=True)
-
-render()
+        st.markdown("<div class='status-header' style='background: #FFD700;'><h1 style='color:black !important;'>WAITING FOR DIRECTOR</h1></div>", unsafe_allow_html=True
