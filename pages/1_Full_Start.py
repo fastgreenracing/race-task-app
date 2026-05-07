@@ -45,7 +45,7 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        padding-bottom: 2px !important; /* Minimal buffer from line */
+        padding-bottom: 60px !important; /* Minimal buffer from line */
         padding-top: 60px !important;   /* Large top padding for height */
         line-height: 1.0 !important;
     }
