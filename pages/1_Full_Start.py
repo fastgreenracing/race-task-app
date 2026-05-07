@@ -12,24 +12,21 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- CLEAN WHITE THEME: REMOVING INTERNAL CHECKBOX BORDERS ---
+# --- CLEAN WHITE THEME: TOTAL INTERNAL BOX REMOVAL ---
 st.markdown("""
     <style>
-    /* Base Page Styling */
     .stApp {
         background-color: #FFFFFF;
         color: #000000;
         font-family: "Times New Roman", Times, serif !important;
     }
     
-    /* Standardized Text Size 16pt */
     p, span, label, b, .stMarkdown {
         font-size: 16pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
     }
 
-    /* Titles at 24pt */
     h1 {
         font-size: 24pt !important;
         font-family: "Times New Roman", Times, serif !important;
@@ -41,34 +38,49 @@ st.markdown("""
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {
         border: 1px solid #000000 !important;
         border-radius: 2px;
-        padding: 6px 12px !important; /* Professional padding */
+        padding: 8px 12px !important;
         margin-bottom: 4px !important;
         background: #FFFFFF;
         display: flex;
-        align-items: center; /* Vertically Centers Checkbox & Text */
+        align-items: center;
     }
     
-    /* --- CSS TO REMOVE INNER BOX --- */
-    /* Stripping all standard borders, backgrounds, and boxes from the inner widget */
-    [data-testid="stCheckbox"] [role="checkbox"] {
+    /* TARGETING THE INNER BOX DIRECTLY */
+    /* This removes the border and background of the actual square box */
+    [data-testid="stCheckbox"] div[role="checkbox"] {
+        border: none !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+
+    /* This removes the 'hover' and 'focus' states that re-draw the box */
+    [data-testid="stCheckbox"] div[role="checkbox"]:hover,
+    [data-testid="stCheckbox"] div[role="checkbox"]:focus,
+    [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {
         border: none !important;
         background: transparent !important;
         background-color: transparent !important;
         box-shadow: none !important;
     }
 
-    /* Scaling the Checkmark icon (Red X) itself */
-    [data-testid="stCheckbox"] { 
-        transform: scale(2.2); /* Adjust scale as needed to fill area */
-        margin-left: 5px;
+    /* This targets the internal div that Streamlit often uses for the widget's visual state */
+    [data-testid="stCheckbox"] div[data-testid="stWidgetLabel"] div {
+        border: none !important;
+        background: transparent !important;
     }
 
-    /* Hiding the native widget background entirely when unchecked */
-    [data-testid="stCheckbox"] div[data-testid="stWidgetLabel"] div {
-        background: transparent !important;
-        border: none !important;
+    /* Scale only the red check icon */
+    [data-testid="stCheckbox"] { 
+        transform: scale(2.2); 
+        margin-left: 5px;
     }
-    /* ------------------------------ */
+    
+    /* Ensure the check icon (SVG) is visible even when the background is gone */
+    [data-testid="stCheckbox"] svg {
+        fill: #FF0000 !important; /* Forces the checkmark to remain red/visible */
+    }
 
     .status-header {
         padding: 25px;
@@ -82,11 +94,8 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 MILESTONES = [
-    "Staff on Site", 
-    "Volunteers on Site", 
-    "Announcers on Site", 
-    "Timers on Site", 
-    "Set up of Start Line is Finished", 
+    "Staff on Site", "Volunteers on Site", "Announcers on Site", 
+    "Timers on Site", "Set up of Start Line is Finished", 
     "Full Marathon Start is 100%-awaiting Go Ahead"
 ]
 
@@ -101,38 +110,20 @@ def render():
     note_active = data.get("note_active", False)
     emergency = data.get("emergency_cancel", False)
 
-    # Status Logic for Site Lead Header
     if emergency:
-        st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP: RACE CANCELED</h1></div>", unsafe_allow_html=True)
+        st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
     elif director_signal or note_active: 
         msg = data.get("custom_note", "Okay to start ontime") if note_active else "Okay to start ontime"
         st.markdown(f"<div class='status-header' style='background:#008000;'><h1>🚀 {msg}</h1></div>", unsafe_allow_html=True)
     elif count == 6:
         st.markdown("<div class='status-header' style='background:#FFD700; color:black;'><h1>⏳ WAITING FOR DIRECTOR</h1></div>", unsafe_allow_html=True)
     else:
-        # Gray header while milestones are in progress
         st.markdown(f"<div class='status-header' style='background:#EEEEEE; color:black;'><h1>PREPARING ({count}/6)</h1></div>", unsafe_allow_html=True)
 
     st.divider()
 
-    # Checklist Rendering
     for m in MILESTONES:
         checked = data.get(m, False)
-        # Using columns to keep the checkmark aligned neatly to the left of the text
-        col1, col2 = st.columns([0.4, 9.6]) # Checkbox gets small column to reduce gap
+        col1, col2 = st.columns([0.5, 9.5])
         with col1:
-            # Render Checkbox
-            val = st.checkbox("", value=checked, key=f"m_{m}")
-            # If changed, update Database
-            if val != checked:
-                doc_ref.set({m: val}, merge=True)
-                # Auto-reset approval if a milestone is unchecked
-                if not val: 
-                    doc_ref.update({"director_signal": False, "note_active": False})
-                st.rerun()
-        with col2:
-            # In-line text rendering with vertical offset to center with the scaled checkmark
-            st.markdown(f"<div style='padding-top:10px;'><b>{m}</b></div>", unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    render()
+            val = st.checkbox("", value=checked,
