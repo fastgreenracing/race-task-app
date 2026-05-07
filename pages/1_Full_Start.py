@@ -8,7 +8,7 @@ db = firestore.Client.from_service_account_info(key_dict)
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- CLEAN WHITE THEME WITH CUSTOM "X" CHECKBOXES ---
+# --- CLEAN WHITE THEME: TIGHTER UI ---
 st.markdown("""
     <style>
     .stApp {
@@ -30,49 +30,33 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* Milestone Container */
+    /* ULTRA-TIGHT Milestone Container */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {
         border: 1px solid #000000 !important;
-        border-radius: 4px;
-        padding: 8px 15px !important;
-        margin-bottom: 6px !important;
-        background: #FDFDFD;
+        border-radius: 2px;
+        padding: 4px 10px !important; /* Extremely tight padding */
+        margin-bottom: 2px !important; /* Minimal gap between boxes */
+        background: #FFFFFF;
     }
     
-    /* Hide the default browser checkmark and replace with an X */
-    [data-testid="stCheckbox"] input[type="checkbox"]:checked ~ div span::after {
-        content: "X" !important;
-        font-family: Arial, sans-serif !important; /* Use a clean font for the X */
-        font-weight: bold !important;
-        font-size: 22px !important; /* Adjust size to fill box */
-        color: #000000 !important;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        visibility: visible !important;
+    /* LARGER Checkbox to fill the area */
+    [data-testid="stCheckbox"] { 
+        transform: scale(1.6); /* Enlarged to fill the tighter box */
+        margin-left: 10px;
+        margin-top: 2px;
     }
 
-    /* Hide the actual check icon svg */
-    [data-testid="stCheckbox"] svg {
-        display: none !important;
-    }
-
-    /* Ensure the box itself stays visible */
+    /* Ensure the internal checkbox alignment is centered */
     [data-testid="stCheckbox"] div[role="checkbox"] {
-        background-color: #FFFFFF !important;
-        border: 2px solid #000000 !important;
-        border-radius: 2px !important;
-        width: 25px !important;
-        height: 25px !important;
+        border: 1.5px solid #000000 !important;
     }
     
     .status-header {
-        padding: 30px;
+        padding: 25px;
         border: 2px solid #000000;
-        border-radius: 10px;
+        border-radius: 8px;
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -81,7 +65,7 @@ MILESTONES = ["Staff on Site", "Volunteers on Site", "Announcers on Site", "Time
 
 @st.fragment(run_every=2)
 def render():
-    st.title("Full Marathon Start: Logistics Checklist")
+    st.title("Full Marathon Start Checklist")
     doc_ref = db.collection("site_statuses").document("full_start_FINAL")
     data = doc_ref.get().to_dict() or {}
     
@@ -91,6 +75,7 @@ def render():
     emergency = data.get("emergency_cancel", False)
     custom_note = data.get("custom_note", "")
 
+    # Status Display Headers
     if emergency:
         st.markdown(f"<div class='status-header' style='background: #FF0000;'><h1 style='color:white !important;'>STOP: {custom_note}</h1></div>", unsafe_allow_html=True)
     elif director_signal:
@@ -105,7 +90,8 @@ def render():
     st.divider()
     for m in MILESTONES:
         checked = data.get(m, False)
-        col1, col2 = st.columns([0.5, 9.5])
+        # Using a very small column for the checkbox to keep it tight to the left
+        col1, col2 = st.columns([0.4, 9.6])
         with col1:
             val = st.checkbox("", value=checked, key=f"m_{m}")
             if val != checked:
@@ -113,6 +99,7 @@ def render():
                 if not val: doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
         with col2:
-            st.markdown(f"**{m}**")
+            # Inline bold text for the milestone
+            st.markdown(f"<div style='padding-top:4px;'><b>{m}</b></div>", unsafe_allow_html=True)
 
 render()
