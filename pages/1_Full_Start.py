@@ -54,7 +54,7 @@ st.markdown("""
 
     /* Invisible clickable hit area */
     [data-testid="stCheckbox"] div[role="checkbox"] {
-        opacity: 10 !important;
+        opacity: 100 !important;
         width: 50px !important;
         height: 50px !important;
         cursor: pointer !important;
