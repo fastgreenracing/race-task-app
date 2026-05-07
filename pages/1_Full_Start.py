@@ -118,4 +118,17 @@ def render():
     for m in MILESTONES:
         checked = data.get(m, False)
         # Ratio changed to give more room to text and keep the checkbox anchored far left
-        col1, col2 = st.columns
+        col1, col2 = st.columns([0.08, 9.92]) 
+        with col1:
+            val = st.checkbox("", value=checked, key=f"m_{m}")
+            if val != checked:
+                doc_ref.set({m: val}, merge=True)
+                if not val: 
+                    doc_ref.update({"director_signal": False, "note_active": False})
+                st.rerun()
+        with col2:
+            # margin-left: 50px provides the buffer so the scaled checkmark doesn't hit the text
+            st.markdown(f"<div style='margin-left:55px; padding-top:2px;'><b>{m}</b></div>", unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    render()
