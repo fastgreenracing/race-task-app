@@ -24,7 +24,6 @@ st.markdown("""
         background-size: 40px 40px; pointer-events: none;
     }
 
-    /* Standard Font Size 16px */
     p, span, label, li { font-size: 16px !important; }
     h3 { font-size: 1.5rem !important; color: #28a745 !important; }
 
@@ -60,7 +59,6 @@ def render():
     emergency = data.get("emergency_cancel", False)
     custom_note = data.get("custom_note", "")
 
-    # STATUS HEADERS (Large Ready Signals)
     if emergency:
         st.markdown(f"<div class='status-header' style='background: #ff4b4b;'><h1 style='color:white !important;'>STOP: {custom_note}</h1></div>", unsafe_allow_html=True)
     elif director_signal:
