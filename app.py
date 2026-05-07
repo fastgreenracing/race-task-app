@@ -35,10 +35,10 @@ def get_categories():
     return sorted(cat_ref.to_dict().get("data", []), key=lambda x: x.get('order', 0)) if cat_ref.exists else []
 
 def get_site_status(cat_name):
-    # --- STRICTOR CHECK FOR FULL MARATHON START ---
-    if cat_name == "Full Marathon Start":
-        # Pull the specific milestone record
-        doc = db.collection("site_statuses").document("full_start").get()
+    # HARD-CODED CHECK for the Full Start Line
+    if "Full" in cat_name and "Start" in cat_name:
+        # Use the new V2 ID to bypass old data
+        doc = db.collection("site_statuses").document("full_start_v2").get()
         if doc.exists:
             data = doc.to_dict()
             m_list = [
@@ -46,9 +46,7 @@ def get_site_status(cat_name):
                 "Timers on Site", "Set up of Start Line is Finished", 
                 "Full Marathon Start is 100%-awaiting Go Ahead"
             ]
-            # Manually count True values
             count = sum(1 for m in m_list if data.get(m, False))
-            # ONLY return True if count is exactly 6
             is_ready = (count == 6)
             return {"completed": is_ready, "display": f"{count}/6 MILESTONES"}
     
@@ -56,11 +54,11 @@ def get_site_status(cat_name):
     safe_id = cat_name.replace("/", "_").replace(" ", "_")
     doc = db.collection("settings").document(f"status_{safe_id}").get()
     res = doc.to_dict() if doc.exists else {"completed": False}
-    return {"completed": res.get("completed", False), "display": "READY" if res.get("completed") else "NOT READY"}
+    return {"completed": res.get("completed", False), "display": "NOT READY"}
 
 st.title("🎛️ Ops Master Dashboard")
 
-@st.fragment(run_every=5)
+@st.fragment(run_every=3)
 def render_dashboard():
     categories = get_categories()
     if not categories: return
