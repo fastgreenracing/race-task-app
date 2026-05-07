@@ -32,7 +32,7 @@ st.markdown("""
     .milestone-row {
         display: flex;
         align-items: center; 
-        min-height: 90px; /* Tall enough for the large checkmark */
+        min-height: 20px; /* Tall enough for the large checkmark */
         border-bottom: 3px solid #000000;
         padding: 0 10px;
         background-color: transparent;
@@ -51,8 +51,8 @@ st.markdown("""
     /* Invisible clickable area - Made larger to match visual checkmark */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
-        width: 75px !important;
-        height: 75px !important;
+        width: 19px !important;
+        height: 19px !important;
         cursor: pointer !important;
     }
 
