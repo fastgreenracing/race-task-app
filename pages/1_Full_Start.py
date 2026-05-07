@@ -65,7 +65,7 @@ st.markdown("""
         left: 0px; 
         top: -12px; /* Centering tweak for the large scale */
         width: 25px;
-        height: 50px;
+        height: 19px;
         border: solid #FF0000;
         border-width: 0 10px 10px 0; /* Bold check lines */
         transform: rotate(45deg);
