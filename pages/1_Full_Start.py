@@ -12,7 +12,6 @@ else:
     st.error("Firestore secrets not found.")
     st.stop()
 
-# Use Pacific Time for the racing events
 TIMEZONE = pytz.timezone("America/Los_Angeles")
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
@@ -30,22 +29,26 @@ st.markdown("""
         font-size: 24pt !important;
         font-family: "Times New Roman", Times, serif !important;
         font-weight: bold !important;
-        color: #000000 !important;
         line-height: 1.1;
     }
 
     .timestamp-label {
         font-size: 12pt !important;
         color: #666666 !important;
-        font-family: "Times New Roman", Times, serif !important;
         font-style: italic;
+    }
+
+    .note-timestamp {
+        font-size: 14pt !important;
+        display: block;
+        margin-top: 5px;
+        opacity: 0.9;
     }
 
     [data-testid="stCheckbox"] div[role="checkbox"] {
         width: 80px !important;
         height: 80px !important;
         cursor: pointer !important;
-        margin-top: 5px;
     }
 
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
@@ -95,7 +98,6 @@ MILESTONES = [
 def render():
     st.title("Full Marathon Start Checklist")
     
-    # 2. Retrieve current status and timestamps
     doc_ref = db.collection("site_statuses").document("full_start_FINAL")
     data = doc_ref.get().to_dict() or {}
     
@@ -103,12 +105,15 @@ def render():
     director_signal = data.get("director_signal", False)
     note_active = data.get("note_active", False)
     emergency = data.get("emergency_cancel", False)
+    note_ts = data.get("note_timestamp", "")
 
+    # Status Header with Note Timestamp
     if emergency:
         st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
     elif director_signal or note_active: 
         msg = data.get("custom_note", "Okay to start ontime") if note_active else "Okay to start ontime"
-        st.markdown(f"<div class='status-header' style='background:#008000;'><h1>🚀 {msg}</h1></div>", unsafe_allow_html=True)
+        ts_html = f"<span class='note-timestamp'>Sent at: {note_ts}</span>" if note_ts else ""
+        st.markdown(f"<div class='status-header' style='background:#008000;'><h1>🚀 {msg}{ts_html}</h1></div>", unsafe_allow_html=True)
     elif count == 6:
         st.markdown("<div class='status-header' style='background:#FFD700; color:black;'><h1>⏳ WAITING FOR DIRECTOR</h1></div>", unsafe_allow_html=True)
     else:
@@ -118,25 +123,22 @@ def render():
 
     for i, m in enumerate(MILESTONES):
         checked = data.get(m, False)
-        # Fetch existing timestamp string if it exists
         ts_key = f"{m}_ts"
         timestamp_str = data.get(ts_key, "")
         
         col_check, col_text = st.columns([0.15, 9.85])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"baseline_ts_{m}")
+            val = st.checkbox("", value=checked, key=f"baseline_v2_{m}")
             if val != checked:
                 now = datetime.now(TIMEZONE)
                 current_ts = now.strftime("%I:%M:%S %p")
                 
-                # Update Status Doc with timestamp
                 update_payload = {m: val, ts_key: current_ts if val else ""}
                 doc_ref.set(update_payload, merge=True)
                 
-                # 3. Create a Permanent Log Entry
-                log_ref = db.collection("milestone_logs").document()
-                log_ref.set({
+                # Log entry
+                db.collection("milestone_logs").add({
                     "milestone": m,
                     "action": "Completed" if val else "Unchecked",
                     "timestamp": now,
