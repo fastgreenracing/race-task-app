@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- THE "MASKING" THEME: HIDING THE GHOST BOX ---
+# --- REFINED ALIGNMENT: CENTERED TEXT & LEFT-FLUSH CHECKMARK ---
 st.markdown("""
     <style>
     .stApp {
@@ -38,43 +38,39 @@ st.markdown("""
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {
         border: 1px solid #000000 !important;
         border-radius: 2px;
-        padding: 2px 10px !important;
+        padding: 0px 10px !important; /* Minimal vertical padding for tighter fit */
         margin-bottom: 4px !important;
         background: #FFFFFF;
         display: flex;
-        align-items: center;
-        overflow: visible !important; /* Vital for letting the checkmark float out */
+        align-items: center; /* PERFECT VERTICAL CENTERING */
+        overflow: visible !important;
+        min-height: 50px; /* Ensures a consistent height for the text row */
     }
     
-    /* 2. THE "NUCLEAR" HIDE: Shrink the container to nothing */
+    /* 2. THE FLOATING CHECKMARK */
     [data-testid="stCheckbox"] {
         border: none !important;
         background: transparent !important;
         padding: 0 !important;
         margin: 0 !important;
-        width: 5px !important; /* Shrinks the 'ghost box' to a tiny sliver */
-        height: 5px !important;
+        width: 1px !important; /* Effectively invisible footprint */
+        height: 1px !important;
         overflow: visible !important;
+        /* Pulls the checkmark left and centers it vertically */
+        transform: scale(2.6) translateX(-2px) translateY(-2px); 
+        z-index: 99;
     }
 
-    /* 3. STRIP THE INTERNAL CHECKBOX BOX */
-    [data-testid="stCheckbox"] [role="checkbox"] {
+    /* 3. STRIP ALL INTERNAL BOX ARTIFACTS */
+    [data-testid="stCheckbox"] [role="checkbox"],
+    [data-testid="stCheckbox"] div[data-testid="stWidgetLabel"] div {
         border: none !important;
         background: transparent !important;
         background-color: transparent !important;
         box-shadow: none !important;
-        width: 1px !important;
-        height: 1px !important;
+        outline: none !important;
     }
 
-    /* 4. POSITION THE FLOATING CHECKMARK */
-    /* We use scale and translation to move it outside the tiny container */
-    [data-testid="stCheckbox"] { 
-        transform: scale(2.8) translateX(5px) translateY(-2px); 
-        z-index: 99;
-    }
-
-    /* Ensure check icon stays red and visible */
     [data-testid="stCheckbox"] svg {
         fill: #FF0000 !important;
     }
@@ -121,17 +117,5 @@ def render():
 
     for m in MILESTONES:
         checked = data.get(m, False)
-        # We give the checkbox almost no space, forcing it to be a tiny anchor point
-        col1, col2 = st.columns([0.1, 9.9])
-        with col1:
-            val = st.checkbox("", value=checked, key=f"m_{m}")
-            if val != checked:
-                doc_ref.set({m: val}, merge=True)
-                if not val: 
-                    doc_ref.update({"director_signal": False, "note_active": False})
-                st.rerun()
-        with col2:
-            st.markdown(f"<div style='padding-top:12px; margin-left:35px;'><b>{m}</b></div>", unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    render()
+        # Ratio changed to give more room to text and keep the checkbox anchored far left
+        col1, col2 = st.columns
