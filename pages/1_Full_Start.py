@@ -1,6 +1,8 @@
 import streamlit as st
 from google.cloud import firestore
 import json
+from datetime import datetime
+import pytz
 
 # 1. Database Connection
 if "textkey" in st.secrets:
@@ -10,9 +12,12 @@ else:
     st.error("Firestore secrets not found.")
     st.stop()
 
+# Use Pacific Time for the racing events
+TIMEZONE = pytz.timezone("America/Los_Angeles")
+
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- MOBILE JUMBO THEME ---
+# --- BASELINE THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -26,18 +31,23 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
         font-weight: bold !important;
         color: #000000 !important;
-        line-height: 1.5;
+        line-height: 1.1;
     }
 
-    /* MOBILE JUMBO CHECKBOX HIT AREA */
+    .timestamp-label {
+        font-size: 12pt !important;
+        color: #666666 !important;
+        font-family: "Times New Roman", Times, serif !important;
+        font-style: italic;
+    }
+
     [data-testid="stCheckbox"] div[role="checkbox"] {
-        width: 80px !important;  /* Increased for finger tapping */
-        height: 80px !important; /* Increased for finger tapping */
+        width: 80px !important;
+        height: 80px !important;
         cursor: pointer !important;
         margin-top: 5px;
     }
 
-    /* SCALED RED CHECKMARK */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
@@ -65,7 +75,7 @@ st.markdown("""
     }
 
     hr {
-        margin: 1.5em 0 !important; /* Slightly more breathing room for mobile */
+        margin: 1.2em 0 !important;
         border: 0;
         border-top: 2px solid #EEEEEE;
     }
@@ -85,6 +95,7 @@ MILESTONES = [
 def render():
     st.title("Full Marathon Start Checklist")
     
+    # 2. Retrieve current status and timestamps
     doc_ref = db.collection("site_statuses").document("full_start_FINAL")
     data = doc_ref.get().to_dict() or {}
     
@@ -107,20 +118,40 @@ def render():
 
     for i, m in enumerate(MILESTONES):
         checked = data.get(m, False)
+        # Fetch existing timestamp string if it exists
+        ts_key = f"{m}_ts"
+        timestamp_str = data.get(ts_key, "")
         
-        # 0.15 width for checkbox ensures the hit zone doesn't overlap text on mobile
         col_check, col_text = st.columns([0.15, 9.85])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"baseline_mobile_{m}")
+            val = st.checkbox("", value=checked, key=f"baseline_ts_{m}")
             if val != checked:
-                doc_ref.set({m: val}, merge=True)
+                now = datetime.now(TIMEZONE)
+                current_ts = now.strftime("%I:%M:%S %p")
+                
+                # Update Status Doc with timestamp
+                update_payload = {m: val, ts_key: current_ts if val else ""}
+                doc_ref.set(update_payload, merge=True)
+                
+                # 3. Create a Permanent Log Entry
+                log_ref = db.collection("milestone_logs").document()
+                log_ref.set({
+                    "milestone": m,
+                    "action": "Completed" if val else "Unchecked",
+                    "timestamp": now,
+                    "display_time": current_ts,
+                    "event_id": "full_start_FINAL"
+                })
+
                 if not val: 
                     doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
         
         with col_text:
             st.markdown(f'<div class="milestone-label">{m}</div>', unsafe_allow_html=True)
+            if checked and timestamp_str:
+                st.markdown(f'<div class="timestamp-label">Completed at {timestamp_str}</div>', unsafe_allow_html=True)
         
         if i < len(MILESTONES) - 1:
             st.markdown("---")
