@@ -2,6 +2,7 @@ import streamlit as st
 from google.cloud import firestore
 import json
 
+# 1. Database Connection
 key_dict = json.loads(st.secrets["textkey"])
 db = firestore.Client.from_service_account_info(key_dict)
 
@@ -29,15 +30,20 @@ st.markdown("""
         font-weight: bold !important;
     }
 
+    /* Smaller Milestone Boxes */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {
         border: 1px solid #000000 !important;
-        border-radius: 5px;
-        padding: 15px !important;
-        margin-bottom: 10px !important;
+        border-radius: 4px;
+        padding: 8px 15px !important; /* Reduced padding for smaller boxes */
+        margin-bottom: 6px !important; /* Tighter spacing between items */
         background: #FDFDFD;
     }
     
-    [data-testid="stCheckbox"] { transform: scale(1.5); }
+    /* Smaller Checkbox Scaling */
+    [data-testid="stCheckbox"] { 
+        transform: scale(1.1); /* Reduced from 1.5/1.8 for a smaller footprint */
+        margin-left: 5px; 
+    }
     
     .status-header {
         padding: 30px;
@@ -69,7 +75,7 @@ def render():
     elif director_signal:
         st.markdown("<div class='status-header' style='background: #008000;'><h1 style='color:white !important;'>Okay to start ontime</h1></div>", unsafe_allow_html=True)
     elif note_active:
-        st.markdown(f"<div class='status-header' style='background: #008000;'><p style='color:white !important;'>DIRECTOR NOTE:</p><h1 style='color:white !important;'>{custom_note}</h1></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='status-header' style='background: #008000;'><p style='color:white !important; font-size: 16pt;'>DIRECTOR NOTE:</p><h1 style='color:white !important;'>{custom_note}</h1></div>", unsafe_allow_html=True)
     elif count == 6:
         st.markdown("<div class='status-header' style='background: #FFD700;'><h1 style='color:black !important;'>WAITING FOR DIRECTOR</h1></div>", unsafe_allow_html=True)
     else:
@@ -78,7 +84,7 @@ def render():
     st.divider()
     for m in MILESTONES:
         checked = data.get(m, False)
-        col1, col2 = st.columns([1, 9])
+        col1, col2 = st.columns([0.5, 9.5]) # Shifted column ratio for smaller checkbox footprint
         with col1:
             val = st.checkbox("", value=checked, key=f"m_{m}")
             if val != checked:
