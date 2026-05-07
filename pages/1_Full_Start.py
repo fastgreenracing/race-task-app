@@ -70,7 +70,7 @@ st.markdown("""
     /* Remove Streamlit default vertical spacing */
     [data-testid="stCheckbox"] {
         margin: 0 !important;
-        padding: 0 !important;
+        padding: -20 !important;
         display: flex;
         align-items: center;
     }
