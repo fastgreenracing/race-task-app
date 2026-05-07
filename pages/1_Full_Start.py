@@ -51,7 +51,7 @@ st.markdown("""
         /* THIS ALIGNS THE TEXT VERTICALLY */
         display: flex;
         align-items: center; 
-        height: 70px; /* Matches the row height exactly */
+        height: 30px; /* Matches the row height exactly */
         line-height: 0 !important; /* Prevents internal font leading from pushing text down */
     }
 
