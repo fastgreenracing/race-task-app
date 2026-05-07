@@ -51,8 +51,7 @@ MILESTONES = [
     "Announcers on Site",
     "Timers on Site",
     "Set up of Start Line is Finished",
-    "Full Marathon Start is 100% Ready",
-    "Awaiting Start Go Ahead"
+    "Full Marathon Start is 100%-awaiting Go Ahead",
 ]
 
 @st.fragment(run_every=5)
