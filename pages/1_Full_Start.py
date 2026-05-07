@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- ZERO-GAP VERTICAL CENTERING THEME ---
+# --- THE "FLAWLESS CENTER" THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -28,11 +28,11 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Milestone Row: Strict vertical centering with no internal padding interference */
+    /* Milestone Row: Strict Container */
     .milestone-row {
         display: flex;
-        align-items: center; /* This centers everything vertically */
-        height: 80px;        /* Fixed height to ensure perfect centering */
+        align-items: center; 
+        height: 70px; /* Adjusted height to feel tighter and professional */
         border-bottom: 3px solid #000000;
         margin: 0 !important;
         padding: 0 !important;
@@ -40,24 +40,26 @@ st.markdown("""
         overflow: visible !important;
     }
 
+    /* Milestone Text: Centered via Flexbox */
     .milestone-text {
         font-size: 16pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
         margin-left: 65px;
+        
+        /* THIS ALIGNS THE TEXT VERTICALLY */
         display: flex;
-        align-items: center; /* Centers text content inside its own div */
-        height: 100%;        /* Takes full height of the row for centering */
-        line-height: 1 !important;
-        padding: 0 !important; /* Removed padding-top to fix the 'bottom space' issue */
+        align-items: center; 
+        height: 70px; /* Matches the row height exactly */
+        line-height: 0 !important; /* Prevents internal font leading from pushing text down */
     }
 
     /* Invisible clickable area */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
-        width: 70px !important;
-        height: 70px !important;
+        width: 60px !important;
+        height: 60px !important;
         cursor: pointer !important;
     }
 
@@ -68,7 +70,7 @@ st.markdown("""
         visibility: visible !important;
         opacity: 1 !important;
         left: 0px; 
-        top: -12px; /* Positioned to look centered in the 80px row */
+        top: -12px; /* Positioned to look centered in the 70px row */
         width: 22px;
         height: 45px;
         border: solid #FF0000;
@@ -76,11 +78,11 @@ st.markdown("""
         transform: rotate(45deg);
     }
 
-    /* Force Streamlit widget to occupy the full height without extra margins */
+    /* Ensure checkbox widget centers itself in the row */
     [data-testid="stCheckbox"] {
         margin: 0 !important;
         padding: 0 !important;
-        height: 100% !important;
+        height: 70px !important;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -137,12 +139,11 @@ def render():
     for m in MILESTONES:
         checked = data.get(m, False)
         
-        # Grid-free row with strict vertical centering
         st.markdown('<div class="milestone-row">', unsafe_allow_html=True)
         col_check, col_text = st.columns([0.05, 9.95])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"vcenter_{m}")
+            val = st.checkbox("", value=checked, key=f"final_center_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
