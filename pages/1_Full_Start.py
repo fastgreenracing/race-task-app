@@ -8,7 +8,7 @@ db = firestore.Client.from_service_account_info(key_dict)
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- CLEAN WHITE THEME (TIMES NEW ROMAN) ---
+# --- CLEAN WHITE THEME WITH CUSTOM "X" CHECKBOXES ---
 st.markdown("""
     <style>
     .stApp {
@@ -17,7 +17,7 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
     }
     
-    p, span, label, li, .stCheckbox {
+    p, span, label, li {
         font-size: 16pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
@@ -30,19 +30,41 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* Smaller Milestone Boxes */
+    /* Milestone Container */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {
         border: 1px solid #000000 !important;
         border-radius: 4px;
-        padding: 8px 15px !important; /* Reduced padding for smaller boxes */
-        margin-bottom: 6px !important; /* Tighter spacing between items */
+        padding: 8px 15px !important;
+        margin-bottom: 6px !important;
         background: #FDFDFD;
     }
     
-    /* Smaller Checkbox Scaling */
-    [data-testid="stCheckbox"] { 
-        transform: scale(1.1); /* Reduced from 1.5/1.8 for a smaller footprint */
-        margin-left: 5px; 
+    /* Hide the default browser checkmark and replace with an X */
+    [data-testid="stCheckbox"] input[type="checkbox"]:checked ~ div span::after {
+        content: "X" !important;
+        font-family: Arial, sans-serif !important; /* Use a clean font for the X */
+        font-weight: bold !important;
+        font-size: 22px !important; /* Adjust size to fill box */
+        color: #000000 !important;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        visibility: visible !important;
+    }
+
+    /* Hide the actual check icon svg */
+    [data-testid="stCheckbox"] svg {
+        display: none !important;
+    }
+
+    /* Ensure the box itself stays visible */
+    [data-testid="stCheckbox"] div[role="checkbox"] {
+        background-color: #FFFFFF !important;
+        border: 2px solid #000000 !important;
+        border-radius: 2px !important;
+        width: 25px !important;
+        height: 25px !important;
     }
     
     .status-header {
@@ -69,7 +91,6 @@ def render():
     emergency = data.get("emergency_cancel", False)
     custom_note = data.get("custom_note", "")
 
-    # Status Display Headers
     if emergency:
         st.markdown(f"<div class='status-header' style='background: #FF0000;'><h1 style='color:white !important;'>STOP: {custom_note}</h1></div>", unsafe_allow_html=True)
     elif director_signal:
@@ -84,7 +105,7 @@ def render():
     st.divider()
     for m in MILESTONES:
         checked = data.get(m, False)
-        col1, col2 = st.columns([0.5, 9.5]) # Shifted column ratio for smaller checkbox footprint
+        col1, col2 = st.columns([0.5, 9.5])
         with col1:
             val = st.checkbox("", value=checked, key=f"m_{m}")
             if val != checked:
