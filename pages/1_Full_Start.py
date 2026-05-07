@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- MINIMALIST CHECKLIST THEME (TIMES NEW ROMAN) ---
+# --- HORIZONTAL DIVIDER THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -26,37 +26,41 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
         font-weight: bold !important;
         color: #000000 !important;
-        margin-bottom: 30px;
     }
 
-    /* Milestone Row Container (No Grid) */
+    /* Milestone Row with Bottom Border */
     .milestone-row {
         display: flex;
-        align-items: center; /* Vertical Center */
-        min-height: 60px;
-        margin-bottom: 10px;
+        align-items: center;
+        min-height: 70px;
+        border-bottom: 1px solid #000000; /* The divider line */
+        padding: 5px 0;
         background-color: transparent;
     }
 
-    /* Milestone Text Styling */
+    /* Remove the border from the very last item if desired */
+    .milestone-row:last-child {
+        border-bottom: none;
+    }
+
     .milestone-text {
         font-size: 16pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 55px; /* Offset to prevent text overlap with check */
-        padding-top: 5px;
+        margin-left: 55px;
+        padding-top: 8px;
     }
 
-    /* Invisible clickable area for native checkbox */
+    /* Invisible clickable area */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
-        width: 50px !important;
-        height: 50px !important;
+        width: 55px !important;
+        height: 55px !important;
         cursor: pointer !important;
     }
 
-    /* Large Floating Red Checkmark */
+    /* Large Red Checkmark */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
@@ -71,7 +75,6 @@ st.markdown("""
         transform: rotate(45deg);
     }
 
-    /* Hide native Streamlit overlays */
     [data-testid="stCheckbox"] svg {
         display: none !important;
     }
@@ -86,7 +89,7 @@ st.markdown("""
         border: 2px solid #000000;
         border-radius: 8px;
         text-align: center;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
         color: white;
     }
     </style>
@@ -113,7 +116,6 @@ def render():
     note_active = data.get("note_active", False)
     emergency = data.get("emergency_cancel", False)
 
-    # Status Logic Header
     if emergency:
         st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
     elif director_signal or note_active: 
@@ -126,17 +128,14 @@ def render():
 
     st.divider()
 
-    # Rendering Checklist Items
     for m in MILESTONES:
         checked = data.get(m, False)
         
-        # Wrapped in a div for layout control, but no border styling applied
         st.markdown('<div class="milestone-row">', unsafe_allow_html=True)
-        
         col_check, col_text = st.columns([0.05, 9.95])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"min_{m}")
+            val = st.checkbox("", value=checked, key=f"line_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
