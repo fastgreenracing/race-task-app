@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- PRECISION GRID ALIGNMENT THEME ---
+# --- MINIMALIST CHECKLIST THEME (TIMES NEW ROMAN) ---
 st.markdown("""
     <style>
     .stApp {
@@ -26,18 +26,16 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
         font-weight: bold !important;
         color: #000000 !important;
+        margin-bottom: 30px;
     }
 
-    /* Individual Milestone Grid Box */
-    .milestone-grid {
-        border: 1px solid #000000;
-        border-radius: 2px;
-        padding: 5px 15px !important;
-        margin-bottom: 10px;
+    /* Milestone Row Container (No Grid) */
+    .milestone-row {
         display: flex;
-        align-items: center; /* Vertically centers the checkbox column and text column */
-        min-height: 70px;
-        background-color: #FFFFFF;
+        align-items: center; /* Vertical Center */
+        min-height: 60px;
+        margin-bottom: 10px;
+        background-color: transparent;
     }
 
     /* Milestone Text Styling */
@@ -46,8 +44,8 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 50px; /* Space to prevent text overlap with the large check */
-        padding-top: 2px;
+        margin-left: 55px; /* Offset to prevent text overlap with check */
+        padding-top: 5px;
     }
 
     /* Invisible clickable area for native checkbox */
@@ -64,16 +62,16 @@ st.markdown("""
         position: absolute;
         visibility: visible !important;
         opacity: 1 !important;
-        left: 10px;
-        top: -5px; /* Adjusted to center the check within the taller grid */
-        width: 20px;
-        height: 40px;
+        left: 5px;
+        top: -5px; 
+        width: 18px;
+        height: 38px;
         border: solid #FF0000;
         border-width: 0 8px 8px 0;
         transform: rotate(45deg);
     }
 
-    /* Cleanup Native Streamlit Overlays */
+    /* Hide native Streamlit overlays */
     [data-testid="stCheckbox"] svg {
         display: none !important;
     }
@@ -81,8 +79,6 @@ st.markdown("""
     [data-testid="stCheckbox"] {
         margin-bottom: 0 !important;
         padding-bottom: 0 !important;
-        display: flex;
-        align-items: center;
     }
 
     .status-header {
@@ -90,7 +86,7 @@ st.markdown("""
         border: 2px solid #000000;
         border-radius: 8px;
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 25px;
         color: white;
     }
     </style>
@@ -130,17 +126,17 @@ def render():
 
     st.divider()
 
-    # Rendering logic: Checkbox and Verbiage INSIDE the Grid
+    # Rendering Checklist Items
     for m in MILESTONES:
         checked = data.get(m, False)
         
-        # This div wraps the columns, ensuring the border goes around both
-        st.markdown('<div class="milestone-grid">', unsafe_allow_html=True)
+        # Wrapped in a div for layout control, but no border styling applied
+        st.markdown('<div class="milestone-row">', unsafe_allow_html=True)
         
-        col_check, col_text = st.columns([0.1, 9.9])
+        col_check, col_text = st.columns([0.05, 9.95])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"grid_in_{m}")
+            val = st.checkbox("", value=checked, key=f"min_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
@@ -148,7 +144,6 @@ def render():
                 st.rerun()
         
         with col_text:
-            # Displays the verbiage inside the second column of the grid
             st.markdown(f'<div class="milestone-text">{m}</div>', unsafe_allow_html=True)
             
         st.markdown('</div>', unsafe_allow_html=True)
