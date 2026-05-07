@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- ALIGNMENT & THICK BORDER THEME ---
+# --- NO-GAP THICK BORDER THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -28,14 +28,17 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Milestone Row: Centers all content vertically between thick lines */
+    /* Milestone Row: Collapsing extra vertical space */
     .milestone-row {
         display: flex;
         align-items: center; 
-        min-height: 20px; /* Tall enough for the large checkmark */
+        min-height: 75px; /* Reduced to pull border up */
+        max-height: 75px;
         border-bottom: 3px solid #000000;
-        padding: 0 10px;
+        padding: 0;
+        margin: 0;
         background-color: transparent;
+        overflow: visible !important;
     }
 
     .milestone-text {
@@ -43,16 +46,17 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 65px; /* Space for the massive checkmark */
+        margin-left: 65px;
         display: flex;
         align-items: center;
+        line-height: 1 !important;
     }
 
-    /* Invisible clickable area - Made larger to match visual checkmark */
+    /* Invisible clickable area - Height set to match row to remove gap */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
-        width: 19px !important;
-        height: 19px !important;
+        width: 70px !important;
+        height: 70px !important;
         cursor: pointer !important;
     }
 
@@ -63,24 +67,25 @@ st.markdown("""
         visibility: visible !important;
         opacity: 1 !important;
         left: 0px; 
-        top: -12px; /* Centering tweak for the large scale */
-        width: 25px;
-        height: 19px;
+        top: -10px; 
+        width: 22px;
+        height: 45px;
         border: solid #FF0000;
-        border-width: 0 10px 10px 0; /* Bold check lines */
+        border-width: 0 10px 10px 0;
         transform: rotate(45deg);
     }
 
-    /* Remove Streamlit default graphics */
-    [data-testid="stCheckbox"] svg {
-        display: none !important;
-    }
-    
+    /* Kill all native Streamlit margins and paddings for the widget */
     [data-testid="stCheckbox"] {
-        margin-bottom: 0 !important;
-        padding-bottom: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 70px !important;
         display: flex;
         align-items: center;
+    }
+
+    [data-testid="stCheckbox"] svg {
+        display: none !important;
     }
 
     .status-header {
@@ -134,7 +139,7 @@ def render():
         col_check, col_text = st.columns([0.05, 9.95])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"final_align_{m}")
+            val = st.checkbox("", value=checked, key=f"tight_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
