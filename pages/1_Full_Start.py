@@ -13,7 +13,7 @@ else:
     st.stop()
 
 # 2. Page Configuration
-THIS_LOCATION = "Full Marathon Start" 
+THIS_LOCATION = "Full Marathon Start"
 TIMEZONE = "US/Pacific"
 
 st.set_page_config(page_title=f"{THIS_LOCATION} Checklist", layout="wide")
@@ -67,6 +67,7 @@ def render_checklist():
     st.markdown('<a href="/" target="_self" class="main-link">⬅ Return to Ops Dashboard</a>', unsafe_allow_html=True)
     st.title(f"🏁 {THIS_LOCATION}")
     
+    # Get current status
     doc_ref = db.collection("site_statuses").document("full_start")
     doc = doc_ref.get()
     data = doc.to_dict() if doc.exists else {}
@@ -79,4 +80,10 @@ def render_checklist():
     if is_ready:
         st.markdown(f'<div class="status-box" style="background-color: #1b5e20; border: 3px solid #28a745;"><h1 style="color: white !important; margin:0;">GO FOR START</h1><p style="color: white !important;">Final Signal Received</p></div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'
+        st.markdown(f'<div class="status-box" style="background-color: #4c0000; border: 3px solid #ff4b4b;"><h1 style="color: white !important; margin:0;">NO GO</h1><p style="color: white !important;">{completed_count} of {len(MILESTONES)} Milestones Cleared</p></div>', unsafe_allow_html=True)
+
+    st.divider()
+
+    # Render Checklist
+    for m in MILESTONES:
+        is_checked = data.
