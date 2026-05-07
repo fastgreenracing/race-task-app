@@ -15,19 +15,18 @@ st.markdown("<style>.stApp { background-color: #000000; color: #28a745; } h1,h2,
 def render_dashboard():
     st.title("🎛️ Ops Master Dashboard")
     
-    # 1. Check Site Lead Progress
     doc_ref = db.collection("site_statuses").document("full_start_FINAL")
     data = doc_ref.get().to_dict() or {}
     
     m_list = ["Staff on Site", "Volunteers on Site", "Announcers on Site", "Timers on Site", "Set up of Start Line is Finished", "Full Marathon Start is 100%-awaiting Go Ahead"]
     count = sum(1 for m in m_list if data.get(m) == True)
-    
-    # 2. Check if Director has approved
     director_approved = data.get("director_signal", False)
+    director_note_active = data.get("note_active", False)
 
-    # UI Logic for Director
-    if director_approved:
-        color, status_text, sub_text = "#28a745", "START SIGNAL SENT", "Okay to start ontime"
+    # UI Logic for Status Card
+    if director_approved or director_note_active:
+        color, status_text = "#28a745", "SIGNAL SENT"
+        sub_text = data.get("custom_note", "Okay to start ontime") if director_note_active else "Okay to start ontime"
     elif count == 6:
         color, status_text, sub_text = "#ffc107", "WAITING FOR APPROVAL", "Site Lead is Ready"
     else:
@@ -41,14 +40,28 @@ def render_dashboard():
             <p style="font-weight: bold;">{sub_text}</p></div>""", unsafe_allow_html=True)
     
     with col2:
-        if count == 6 and not director_approved:
+        if count == 6 and not (director_approved or director_note_active):
             st.write("### Authorize Start")
-            if st.button("🚀 APPROVE START", use_container_width=True):
-                doc_ref.update({"director_signal": True})
-                st.rerun()
-        elif director_approved:
+            btn1, btn2 = st.columns(2)
+            
+            with btn1:
+                if st.button("🚀 Approve Start", use_container_width=True):
+                    doc_ref.update({"director_signal": True, "note_active": False})
+                    st.rerun()
+            
+            with btn2:
+                # Text input for the custom note
+                note_text = st.text_input("Enter Instruction:", placeholder="e.g. Hold 5 mins for train")
+                if st.button("📝 See Notes", use_container_width=True):
+                    if note_text:
+                        doc_ref.update({"director_signal": False, "note_active": True, "custom_note": note_text})
+                        st.rerun()
+                    else:
+                        st.warning("Type a note first")
+                        
+        elif director_approved or director_note_active:
             if st.button("🛑 RESET (Emergency Hold)", use_container_width=True):
-                doc_ref.update({"director_signal": False})
+                doc_ref.update({"director_signal": False, "note_active": False, "custom_note": ""})
                 st.rerun()
 
 render_dashboard()
