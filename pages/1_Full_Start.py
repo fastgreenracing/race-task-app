@@ -32,7 +32,7 @@ st.markdown("""
     .milestone-row {
         display: flex;
         align-items: center;
-        min-height: 20px; /* Increased height for thicker borders */
+        min-height: 10px; /* Increased height for thicker borders */
         border-bottom: 3px solid #000000; /* Bold Divider */
         padding: 10px 0;
         background-color: transparent;
