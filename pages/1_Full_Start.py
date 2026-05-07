@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- CLEAN JUMBO THEME ---
+# --- CLEAN LIST THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -21,51 +21,36 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
     }
     
-    h1 {
+    /* Global Text Style for the List */
+    .milestone-label {
         font-size: 24pt !important;
         font-family: "Times New Roman", Times, serif !important;
         font-weight: bold !important;
+        color: #000000 !important;
+        line-height: 1.2;
     }
 
-    /* Jumbo Milestone Row */
-    .milestone-row {
-        display: flex;
-        align-items: center; 
-        min-height: 80px;
-        border-bottom: 3px solid #000000;
-        padding: 10px 0;
-    }
-
-    .milestone-text {
-        font-size: 24pt !important;
-        font-family: "Times New Roman", Times, serif !important;
-        font-weight: bold !important;
-        margin-left: 60px; /* Space for the jumbo checkmark */
-    }
-
-    /* 1. MAKE NATIVE CHECKBOX INVISIBLE BUT CLICKABLE */
+    /* Jumbo Red Checkmark Logic */
     [data-testid="stCheckbox"] div[role="checkbox"] {
-        opacity: 0 !important;
-        width: 80px !important;
-        height: 80px !important;
+        width: 50px !important;
+        height: 50px !important;
         cursor: pointer !important;
     }
 
-    /* 2. JUMBO RED CHECKMARK */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
         visibility: visible !important;
-        left: 10px; 
-        top: -10px; 
-        width: 30px; 
-        height: 60px; 
+        left: 15px; 
+        top: 2px; 
+        width: 15px; 
+        height: 30px; 
         border: solid #FF0000;
-        border-width: 0 12px 12px 0; 
+        border-width: 0 8px 8px 0; 
         transform: rotate(45deg);
     }
 
-    /* Hide default Streamlit SVG icon */
+    /* Hide the tiny default check */
     [data-testid="stCheckbox"] svg {
         display: none !important;
     }
@@ -102,7 +87,7 @@ def render():
     note_active = data.get("note_active", False)
     emergency = data.get("emergency_cancel", False)
 
-    # Status Header Logic
+    # Status Header
     if emergency:
         st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
     elif director_signal or note_active: 
@@ -115,26 +100,23 @@ def render():
 
     st.divider()
 
-    # Re-adding the Milestones with full functionality
+    # Pure List Form
     for m in MILESTONES:
         checked = data.get(m, False)
         
-        st.markdown('<div class="milestone-row">', unsafe_allow_html=True)
+        # Using columns to put checkbox and text side-by-side in a simple list
         col_check, col_text = st.columns([0.1, 9.9])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"reset_v1_{m}")
+            val = st.checkbox("", value=checked, key=f"list_item_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
-                # If unchecking, reset the green light logic
                 if not val: 
                     doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
         
         with col_text:
-            st.markdown(f'<div class="milestone-text">{m}</div>', unsafe_allow_html=True)
-            
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="milestone-label">{m}</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     render()
