@@ -70,7 +70,7 @@ st.markdown("""
         visibility: visible !important;
         opacity: 1 !important;
         left: 0px; 
-        top: -12px; /* Positioned to look centered in the 70px row */
+        top: -12px; /* Positioned to look centered in the 110px row */
         width: 22px;
         height: 45px;
         border: solid #FF0000;
