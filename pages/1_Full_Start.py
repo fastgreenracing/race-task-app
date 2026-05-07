@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- THE 1PX THEME ---
+# --- CLEAN JUMBO THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -27,68 +27,47 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* Milestone Row */
+    /* Jumbo Milestone Row */
     .milestone-row {
         display: flex;
         align-items: center; 
-        height: 100px; 
+        min-height: 80px;
         border-bottom: 3px solid #000000;
-        margin: 0 !important;
-        padding: 0 !important;
-        background-color: transparent;
+        padding: 10px 0;
     }
 
     .milestone-text {
         font-size: 24pt !important;
         font-family: "Times New Roman", Times, serif !important;
-        color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 20px; /* Reduced margin since box is tiny */
-        display: flex;
-        align-items: center;
-        height: 100%;
-        line-height: 1.0 !important;
+        margin-left: 60px; /* Space for the jumbo checkmark */
     }
 
-    /* 1. SHRINK THE CHECKBOX TO 1PX */
+    /* 1. MAKE NATIVE CHECKBOX INVISIBLE BUT CLICKABLE */
     [data-testid="stCheckbox"] div[role="checkbox"] {
-        background-color: #000000 !important;
-        border: none !important;
-        opacity: 1 !important; 
-        width: 1px !important;  
-        height: 1px !important; 
+        opacity: 0 !important;
+        width: 80px !important;
+        height: 80px !important;
         cursor: pointer !important;
-        position: relative;
     }
 
-    /* 2. CUSTOM RED CHECKMARK (Shrunk/Hidden to match) */
+    /* 2. JUMBO RED CHECKMARK */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
         visibility: visible !important;
-        left: 0px; 
-        top: 0px; 
-        width: 15px; 
-        height: 30px; 
+        left: 10px; 
+        top: -10px; 
+        width: 30px; 
+        height: 60px; 
         border: solid #FF0000;
-        border-width: 0 5px 5px 0; 
+        border-width: 0 12px 12px 0; 
         transform: rotate(45deg);
     }
 
-    /* Hide the default Streamlit check icon */
+    /* Hide default Streamlit SVG icon */
     [data-testid="stCheckbox"] svg {
         display: none !important;
-    }
-
-    /* Centering the tiny widget in the 100px row */
-    [data-testid="stCheckbox"] {
-        margin: 0 !important;
-        padding: 0 !important;
-        height: 100px !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 40px !important; /* Keep a small hit zone width */
     }
 
     .status-header {
@@ -123,6 +102,7 @@ def render():
     note_active = data.get("note_active", False)
     emergency = data.get("emergency_cancel", False)
 
+    # Status Header Logic
     if emergency:
         st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
     elif director_signal or note_active: 
@@ -135,16 +115,18 @@ def render():
 
     st.divider()
 
+    # Re-adding the Milestones with full functionality
     for m in MILESTONES:
         checked = data.get(m, False)
         
         st.markdown('<div class="milestone-row">', unsafe_allow_html=True)
-        col_check, col_text = st.columns([0.05, 9.95])
+        col_check, col_text = st.columns([0.1, 9.9])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"tiny_dot_{m}")
+            val = st.checkbox("", value=checked, key=f"reset_v1_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
+                # If unchecking, reset the green light logic
                 if not val: 
                     doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
