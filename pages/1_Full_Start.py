@@ -28,20 +28,20 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Milestone Row: Symmetrical padding to force visual centering */
+    /* Milestone Row: Asymmetrical padding to force visual centering */
     .milestone-row {
         display: flex;
         align-items: center; 
         border-bottom: 3px solid #000000;
         margin: 0 !important;
         /* Increase TOP, Decrease BOTTOM to kill the purple-box gap */
-        padding: 5px 0 -150px 0 !important; 
+        padding: 25px 0 5px 0 !important; 
         background-color: transparent;
         overflow: visible !important;
     }
 
     .milestone-text {
-        font-size: 24pt !important;
+        font-size: 16pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
@@ -49,6 +49,14 @@ st.markdown("""
         display: flex;
         align-items: center;
         line-height: 1.0 !important; /* Tightened line height */
+    }
+
+    /* Invisible clickable area */
+    [data-testid="stCheckbox"] div[role="checkbox"] {
+        opacity: 0 !important;
+        width: 50px !important;
+        height: 50px !important;
+        cursor: pointer !important;
     }
 
     /* Custom Red Checkmark: Adjusted top value to follow the new row padding */
@@ -59,9 +67,8 @@ st.markdown("""
         opacity: 1 !important;
         left: 5px; 
         top: -15px; /* Nudged up to stay level with the text */
-        padding: 5px 0 -150px 0 !important; 
-        width: 150px;
-        height: 150px;
+        width: 15px;
+        height: 32px;
         border: solid #FF0000;
         border-width: 0 7px 7px 0;
         transform: rotate(45deg);
@@ -70,7 +77,7 @@ st.markdown("""
     /* Remove Streamlit default vertical spacing */
     [data-testid="stCheckbox"] {
         margin: 0 !important;
-        padding: -20 !important;
+        padding: 0 !important;
         display: flex;
         align-items: center;
     }
