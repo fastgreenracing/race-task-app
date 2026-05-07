@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- JUMBO SCALE THEME ---
+# --- NO-GAP JUMBO THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -28,49 +28,48 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Milestone Row: Padding-top increased to 38px (50% increase from 25px) */
+    /* Milestone Row: High top padding, ZERO bottom padding to kill the gap */
     .milestone-row {
         display: flex;
-        align-items: center; 
+        align-items: flex-end; /* Align content to the bottom border */
         border-bottom: 3px solid #000000;
         margin: 0 !important;
-        padding: 38px 0 5px 0 !important; 
+        padding: 60px 0 0px 0 !important; /* Force content down to the line */
         background-color: transparent;
         overflow: visible !important;
     }
 
-    /* Text: Increased to 24pt (50% increase from 16pt) */
+    /* Jumbo Text */
     .milestone-text {
         font-size: 24pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 75px; /* Widened for larger checkbox */
-        display: flex;
-        align-items: center;
+        margin-left: 100px; /* Space for doubled checkmark */
         line-height: 1.0 !important;
+        padding-bottom: 5px; /* Tiny buffer so text doesn't touch the line */
     }
 
-    /* Invisible clickable area: Scaled up to 75px (50% increase from 50px) */
+    /* Invisible clickable area */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
-        width: 75px !important;
-        height: 75px !important;
+        width: 100px !important;
+        height: 100px !important;
         cursor: pointer !important;
     }
 
-    /* Custom Red Checkmark: Scaled up 50% */
+    /* Doubled Custom Red Checkmark (100% Increase) */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
         visibility: visible !important;
         opacity: 1 !important;
-        left: 5px; 
-        top: -25px; /* Adjusted for larger vertical footprint */
-        width: 23px; /* Scaled from 15px */
-        height: 48px; /* Scaled from 32px */
+        left: 0px; 
+        top: -45px; /* Adjusted for massive scale */
+        width: 45px; /* Doubled */
+        height: 95px; /* Doubled */
         border: solid #FF0000;
-        border-width: 0 11px 11px 0; /* Thicker lines for the jumbo check */
+        border-width: 0 20px 20px 0; /* Doubled thickness */
         transform: rotate(45deg);
     }
 
@@ -78,7 +77,7 @@ st.markdown("""
         margin: 0 !important;
         padding: 0 !important;
         display: flex;
-        align-items: center;
+        align-items: flex-end;
     }
 
     [data-testid="stCheckbox"] svg {
@@ -136,7 +135,7 @@ def render():
         col_check, col_text = st.columns([0.05, 9.95])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"jumbo_{m}")
+            val = st.checkbox("", value=checked, key=f"precision_jumbo_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
