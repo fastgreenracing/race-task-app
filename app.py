@@ -12,6 +12,7 @@ else:
     st.error("Firestore secrets not found.")
     st.stop()
 
+# Set Timezone to Pacific for consistency across the event
 TIMEZONE = pytz.timezone("America/Los_Angeles")
 
 st.set_page_config(page_title="Race Director Dashboard", layout="wide")
@@ -21,7 +22,6 @@ st.title("🏃‍♂️ Race Director Command Center")
 # --- DIRECTOR CONTROL PANEL ---
 st.header("Start Line Communications")
 
-# Create a container for the controls
 with st.container(border=True):
     col1, col2 = st.columns([2, 1])
     
@@ -33,39 +33,43 @@ with st.container(border=True):
         send_btn = st.button("🚀 Send Note & Go", use_container_width=True)
         clear_btn = st.button("🧹 Clear All Signals", use_container_width=True)
 
-# 2. Logic for Sending Notes
+# 2. Database Reference
 doc_ref = db.collection("site_statuses").document("full_start_FINAL")
 
+# --- SEND LOGIC WITH TIMESTAMP ---
 if send_btn:
+    # Capture the exact time of the Director's action
     now_ts = datetime.now(TIMEZONE).strftime("%I:%M:%S %p")
-    # Update Firestore with the note and the current timestamp
+    
     doc_ref.update({
         "custom_note": custom_msg if custom_msg else "Okay to start ontime",
         "note_active": True,
         "director_signal": True,
-        "note_timestamp": now_ts
+        "note_timestamp": now_ts # This timestamp feeds the Baseline sub-pages
     })
-    st.success(f"Signal sent at {now_ts}")
+    st.success(f"Signal and note broadcasted at {now_ts}")
 
+# --- CLEAR LOGIC ---
 if clear_btn:
     doc_ref.update({
         "note_active": False,
         "director_signal": False,
         "custom_note": "",
-        "note_timestamp": "",
+        "note_timestamp": "", # Wipes the timestamp for the next event
         "emergency_cancel": False
     })
-    st.warning("All signals cleared.")
+    st.warning("All signals cleared and reset for next heat.")
 
 st.divider()
 
-# --- OPTIONAL: GLOBAL STATUS PREVIEW ---
-st.subheader("Current Start Line Status")
+# --- STATUS PREVIEW ---
+st.subheader("Live Operations Monitor")
 data = doc_ref.get().to_dict() or {}
 
 if data.get("emergency_cancel"):
     st.error("🛑 EMERGENCY STOP ACTIVE")
 elif data.get("note_active") or data.get("director_signal"):
-    st.success(f"🟢 SIGNAL ACTIVE: {data.get('custom_note')} (Sent: {data.get('note_timestamp')})")
+    current_note = data.get('custom_note', 'Okay to start ontime')
+    st.success(f"🟢 SIGNAL ACTIVE: {current_note} (Sent: {data.get('note_timestamp')})")
 else:
-    st.info("⚪ No active signals.")
+    st.info("⚪ No active signals for the Start Line.")
