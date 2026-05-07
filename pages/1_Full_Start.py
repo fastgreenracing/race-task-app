@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- CLEAN BULLET CHECKLIST THEME ---
+# --- GRID CHECKLIST THEME (TIMES NEW ROMAN) ---
 st.markdown("""
     <style>
     .stApp {
@@ -21,41 +21,64 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
     }
     
-    /* Title Styling (24pt) */
+    /* Title at 24pt */
     h1 {
         font-size: 24pt !important;
         font-family: "Times New Roman", Times, serif !important;
         font-weight: bold !important;
         margin-bottom: 20px;
+        color: #000000 !important;
     }
 
-    /* Checklist Item Styling (16pt) */
-    [data-testid="stCheckbox"] label p {
+    /* Individual Milestone Grid Boxes */
+    /* This creates the border around EACH item */
+    .milestone-grid {
+        border: 1px solid #000000;
+        border-radius: 2px;
+        padding: 5px 10px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        min-height: 60px;
+        background-color: #FFFFFF;
+    }
+
+    /* Standardized Text Size 16pt */
+    .milestone-text {
         font-size: 16pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        padding-left: 10px;
+        margin-left: 60px; /* Space for the large floating check */
+        padding-top: 15px;
     }
 
-    /* Entire Checklist Container */
-    .checklist-container {
-        border: 1px solid #000000;
-        padding: 20px;
-        border-radius: 4px;
-        background-color: #FFFFFF;
+    /* HIDE THE NATIVE WIDGET BOX */
+    [data-testid="stCheckbox"] div[role="checkbox"] {
+        opacity: 0 !important;
+        width: 50px !important;
+        height: 50px !important;
+        cursor: pointer !important;
     }
 
-    /* Remove the 'box' around the native checkbox and scale the checkmark */
-    [data-testid="stCheckbox"] [role="checkbox"] {
-        border: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
+    /* LARGE CUSTOM RED CHECKMARK */
+    [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
+        content: '' !important;
+        position: absolute;
+        visibility: visible !important;
+        opacity: 1 !important;
+        left: 10px;
+        top: 2px;
+        width: 18px;
+        height: 38px;
+        border: solid #FF0000;
+        border-width: 0 7px 7px 0;
+        transform: rotate(45deg);
     }
 
+    /* REMOVE NATIVE SVG */
     [data-testid="stCheckbox"] svg {
-        fill: #FF0000 !important; /* Keep the red checkmark */
-        transform: scale(2.5);
+        display: none !important;
     }
 
     .status-header {
@@ -63,7 +86,7 @@ st.markdown("""
         border: 2px solid #000000;
         border-radius: 8px;
         text-align: center;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
         color: white;
     }
     </style>
@@ -82,7 +105,6 @@ MILESTONES = [
 def render():
     st.title("Full Marathon Start Checklist")
     
-    # Firestore Sync
     doc_ref = db.collection("site_statuses").document("full_start_FINAL")
     data = doc_ref.get().to_dict() or {}
     
@@ -91,7 +113,6 @@ def render():
     note_active = data.get("note_active", False)
     emergency = data.get("emergency_cancel", False)
 
-    # Status Logic Header
     if emergency:
         st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
     elif director_signal or note_active: 
@@ -102,23 +123,22 @@ def render():
     else:
         st.markdown(f"<div class='status-header' style='background:#EEEEEE; color:black;'><h1>PREPARING ({count}/6)</h1></div>", unsafe_allow_html=True)
 
-    # Render the Bulleted Checklist
-    st.markdown('<div class="checklist-container">', unsafe_allow_html=True)
-    
+    st.divider()
+
+    # Render each milestone inside its own grid box
     for m in MILESTONES:
         checked = data.get(m, False)
         
-        # We use a simple checkbox here; the CSS makes it look like a bulleted item
-        val = st.checkbox(m, value=checked, key=f"bullet_{m}")
+        # HTML for the grid box start
+        st.markdown(f'<div class="milestone-grid">', unsafe_allow_html=True)
         
-        if val != checked:
-            doc_ref.set({m: val}, merge=True)
-            # Logic: If any box is unchecked, the director's green light is reset
-            if not val: 
-                doc_ref.update({"director_signal": False, "note_active": False})
-            st.rerun()
-            
-    st.markdown('</div>', unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    render()
+        col1, col2 = st.columns([0.08, 9.92])
+        with col1:
+            val = st.checkbox("", value=checked, key=f"grid_{m}")
+            if val != checked:
+                doc_ref.set({m: val}, merge=True)
+                if not val: 
+                    doc_ref.update({"director_signal": False, "note_active": False})
+                st.rerun()
+        with col2:
+            st.markdown(f'<div
