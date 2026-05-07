@@ -67,7 +67,7 @@ st.markdown("""
         visibility: visible !important;
         opacity: 1 !important;
         left: 0px; 
-        top: -10px; 
+        top: 10px; 
         width: 15px;
         height: 15px;
         border: solid #FF0000;
