@@ -22,12 +22,12 @@ def render_dashboard():
     m_list = ["Staff on Site", "Volunteers on Site", "Announcers on Site", "Timers on Site", "Set up of Start Line is Finished", "Full Marathon Start is 100%-awaiting Go Ahead"]
     count = sum(1 for m in m_list if data.get(m) == True)
     
-    # 2. Check if Director has already approved
+    # 2. Check if Director has approved
     director_approved = data.get("director_signal", False)
 
-    # UI Logic
+    # UI Logic for Director
     if director_approved:
-        color, status_text, sub_text = "#28a745", "START SIGNAL SENT", "Site Lead is Live"
+        color, status_text, sub_text = "#28a745", "START SIGNAL SENT", "Okay to start ontime"
     elif count == 6:
         color, status_text, sub_text = "#ffc107", "WAITING FOR APPROVAL", "Site Lead is Ready"
     else:
@@ -38,15 +38,16 @@ def render_dashboard():
         st.markdown(f"""<div class="status-card" style="border-color: {color};">
             <h3>Full Marathon Start</h3>
             <h1 style="color: {color} !important;">{status_text}</h1>
-            <p>{sub_text}</p></div>""", unsafe_allow_html=True)
+            <p style="font-weight: bold;">{sub_text}</p></div>""", unsafe_allow_html=True)
     
     with col2:
         if count == 6 and not director_approved:
-            if st.button("🚀 GIVE START SIGNAL", use_container_width=True):
+            st.write("### Authorize Start")
+            if st.button("🚀 APPROVE START", use_container_width=True):
                 doc_ref.update({"director_signal": True})
                 st.rerun()
         elif director_approved:
-            if st.button("🛑 RESET SIGNAL (Emergency Only)", use_container_width=True):
+            if st.button("🛑 RESET (Emergency Hold)", use_container_width=True):
                 doc_ref.update({"director_signal": False})
                 st.rerun()
 
