@@ -8,7 +8,7 @@ db = firestore.Client.from_service_account_info(key_dict)
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- CLEAN WHITE THEME: TIGHTER UI ---
+# --- CLEAN WHITE THEME: CENTERED & BORDERLESS CHECKBOXES ---
 st.markdown("""
     <style>
     .stApp {
@@ -30,25 +30,36 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* ULTRA-TIGHT Milestone Container */
+    /* Milestone Container Box */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {
         border: 1px solid #000000 !important;
         border-radius: 2px;
-        padding: 4px 10px !important; /* Extremely tight padding */
-        margin-bottom: 2px !important; /* Minimal gap between boxes */
+        padding: 8px 10px !important;
+        margin-bottom: 4px !important;
         background: #FFFFFF;
+        display: flex;
+        align-items: center; /* Vertically centers the contents */
     }
     
-    /* LARGER Checkbox to fill the area */
-    [data-testid="stCheckbox"] { 
-        transform: scale(1.6); /* Enlarged to fill the tighter box */
-        margin-left: 10px;
-        margin-top: 2px;
+    /* Remove the box around the checkmark itself */
+    [data-testid="stCheckbox"] div[role="checkbox"] {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
     }
 
-    /* Ensure the internal checkbox alignment is centered */
-    [data-testid="stCheckbox"] div[role="checkbox"] {
-        border: 1.5px solid #000000 !important;
+    /* Scale and position the checkmark */
+    [data-testid="stCheckbox"] { 
+        transform: scale(2.0); 
+        margin-left: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Hide the standard checkbox background when unchecked to keep it "borderless" */
+    [data-testid="stCheckbox"] div[data-testid="stWidgetLabel"] {
+        display: none;
     }
     
     .status-header {
@@ -90,7 +101,7 @@ def render():
     st.divider()
     for m in MILESTONES:
         checked = data.get(m, False)
-        # Using a very small column for the checkbox to keep it tight to the left
+        # Using columns to help with the side-by-side centering
         col1, col2 = st.columns([0.4, 9.6])
         with col1:
             val = st.checkbox("", value=checked, key=f"m_{m}")
@@ -99,7 +110,7 @@ def render():
                 if not val: doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
         with col2:
-            # Inline bold text for the milestone
-            st.markdown(f"<div style='padding-top:4px;'><b>{m}</b></div>", unsafe_allow_html=True)
+            # Inline text with vertical padding to match the checkbox scale
+            st.markdown(f"<div style='padding-top:10px;'><b>{m}</b></div>", unsafe_allow_html=True)
 
 render()
