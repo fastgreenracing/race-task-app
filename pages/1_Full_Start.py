@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- CLEAN WHITE THEME: REMOVING ALL INTERNAL WIDGET BOXES ---
+# --- THE "MASKING" THEME: HIDING THE GHOST BOX ---
 st.markdown("""
     <style>
     .stApp {
@@ -38,39 +38,40 @@ st.markdown("""
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {
         border: 1px solid #000000 !important;
         border-radius: 2px;
-        padding: 5px 12px !important;
+        padding: 2px 10px !important;
         margin-bottom: 4px !important;
         background: #FFFFFF;
         display: flex;
         align-items: center;
+        overflow: visible !important; /* Vital for letting the checkmark float out */
     }
     
-    /* 2. REMOVE THE HIGHLIGHTED PURPLE BOXES */
-    /* This targets the internal widget wrapper box seen in your screenshot */
+    /* 2. THE "NUCLEAR" HIDE: Shrink the container to nothing */
     [data-testid="stCheckbox"] {
         border: none !important;
         background: transparent !important;
         padding: 0 !important;
         margin: 0 !important;
-        width: fit-content !important;
+        width: 5px !important; /* Shrinks the 'ghost box' to a tiny sliver */
+        height: 5px !important;
+        overflow: visible !important;
     }
 
-    /* 3. STRIP THE CHECKBOX SQUARE BORDER */
+    /* 3. STRIP THE INTERNAL CHECKBOX BOX */
     [data-testid="stCheckbox"] [role="checkbox"] {
         border: none !important;
         background: transparent !important;
         background-color: transparent !important;
         box-shadow: none !important;
-        height: 40px !important; /* Matches height to container */
-        width: 40px !important;
+        width: 1px !important;
+        height: 1px !important;
     }
 
-    /* 4. SCALE THE RED CHECK ICON */
-    /* We scale the whole widget now that the box is gone */
+    /* 4. POSITION THE FLOATING CHECKMARK */
+    /* We use scale and translation to move it outside the tiny container */
     [data-testid="stCheckbox"] { 
-        transform: scale(2.2); 
-        margin-left: 10px;
-        margin-right: 15px;
+        transform: scale(2.8) translateX(5px) translateY(-2px); 
+        z-index: 99;
     }
 
     /* Ensure check icon stays red and visible */
@@ -99,38 +100,4 @@ MILESTONES = [
 def render():
     st.title("Full Marathon Start Checklist")
     doc_ref = db.collection("site_statuses").document("full_start_FINAL")
-    data = doc_ref.get().to_dict() or {}
-    
-    count = sum(1 for m in MILESTONES if data.get(m) == True)
-    director_signal = data.get("director_signal", False)
-    note_active = data.get("note_active", False)
-    emergency = data.get("emergency_cancel", False)
-
-    if emergency:
-        st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
-    elif director_signal or note_active: 
-        msg = data.get("custom_note", "Okay to start ontime") if note_active else "Okay to start ontime"
-        st.markdown(f"<div class='status-header' style='background:#008000;'><h1>🚀 {msg}</h1></div>", unsafe_allow_html=True)
-    elif count == 6:
-        st.markdown("<div class='status-header' style='background:#FFD700; color:black;'><h1>⏳ WAITING FOR DIRECTOR</h1></div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div class='status-header' style='background:#EEEEEE; color:black;'><h1>PREPARING ({count}/6)</h1></div>", unsafe_allow_html=True)
-
-    st.divider()
-
-    for m in MILESTONES:
-        checked = data.get(m, False)
-        # Using a very narrow first column so the checkmark stays tight to the border
-        col1, col2 = st.columns([0.1, 9.9])
-        with col1:
-            val = st.checkbox("", value=checked, key=f"m_{m}")
-            if val != checked:
-                doc_ref.set({m: val}, merge=True)
-                if not val: 
-                    doc_ref.update({"director_signal": False, "note_active": False})
-                st.rerun()
-        with col2:
-            st.markdown(f"<div style='padding-top:12px; margin-left:25px;'><b>{m}</b></div>", unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    render()
+    data
