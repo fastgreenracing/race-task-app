@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- GRID CHECKLIST THEME ---
+# --- PRECISION ALIGNMENT THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -32,32 +32,36 @@ st.markdown("""
     .milestone-grid {
         border: 1px solid #000000;
         border-radius: 2px;
-        padding: 10px;
-        margin-bottom: 10px;
+        padding: 0px 15px !important;
+        margin-bottom: 8px;
         display: flex;
-        align-items: center;
+        align-items: center; /* Vertical Center for everything */
         min-height: 65px;
         background-color: #FFFFFF;
+        position: relative;
     }
 
+    /* Milestone Text Styling */
     .milestone-text {
         font-size: 16pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 55px; /* Offset to clear the floating checkmark */
-        padding-top: 15px;
+        margin-left: 50px; /* Space for the checkmark */
+        display: flex;
+        align-items: center;
+        height: 65px; /* Matches grid min-height for centering */
     }
 
-    /* Hide native checkbox but keep it clickable */
+    /* Invisible clickable area */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
-        width: 50px !important;
-        height: 50px !important;
+        width: 55px !important;
+        height: 55px !important;
         cursor: pointer !important;
     }
 
-    /* Custom Red Checkmark */
+    /* Large Floating Red Checkmark */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
@@ -65,15 +69,21 @@ st.markdown("""
         opacity: 1 !important;
         left: 10px;
         top: 2px;
-        width: 20px;
-        height: 40px;
+        width: 18px;
+        height: 38px;
         border: solid #FF0000;
-        border-width: 0 8px 8px 0;
+        border-width: 0 7px 7px 0;
         transform: rotate(45deg);
     }
 
+    /* Cleanup Native Streamlit Elements */
     [data-testid="stCheckbox"] svg {
         display: none !important;
+    }
+    
+    [data-testid="stCheckbox"] {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
     }
 
     .status-header {
@@ -108,7 +118,6 @@ def render():
     note_active = data.get("note_active", False)
     emergency = data.get("emergency_cancel", False)
 
-    # Status Logic Header
     if emergency:
         st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
     elif director_signal or note_active: 
@@ -126,7 +135,7 @@ def render():
         checked = data.get(m, False)
         
         st.markdown('<div class="milestone-grid">', unsafe_allow_html=True)
-        col1, col2 = st.columns([0.1, 9.9])
+        col1, col2 = st.columns([0.05, 9.95]) # Tighter first column for flush checkmark
         with col1:
             val = st.checkbox("", value=checked, key=f"grid_{m}")
             if val != checked:
