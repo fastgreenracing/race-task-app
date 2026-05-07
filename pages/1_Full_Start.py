@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- THE "FLAWLESS CENTER" THEME (3X LARGER CHECK) ---
+# --- THE "FLAWLESS CENTER" THEME (SHRUNK 90%) ---
 st.markdown("""
     <style>
     .stApp {
@@ -28,11 +28,11 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Milestone Row: Strict Container */
+    /* Milestone Row */
     .milestone-row {
         display: flex;
         align-items: center; 
-        height: 110px; /* Height maintained for centering */
+        height: 70px; /* Reduced row height to match smaller check */
         border-bottom: 3px solid #000000;
         margin: 0 !important;
         padding: 0 !important;
@@ -46,34 +46,34 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 95px; /* Increased margin to account for 3x larger check */
+        margin-left: 45px; /* Shrunk margin to match smaller check */
         
         display: flex;
         align-items: center; 
-        height: 110px; 
+        height: 70px; 
         line-height: 0 !important;
     }
 
     /* Invisible clickable area */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
-        width: 80px !important; /* Slightly wider hit area */
-        height: 80px !important;
+        width: 45px !important;
+        height: 45px !important;
         cursor: pointer !important;
     }
 
-    /* --- 3X LARGER CUSTOM RED CHECKMARK --- */
+    /* --- SHRUNK CUSTOM RED CHECKMARK --- */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
         visibility: visible !important;
         opacity: 1 !important;
-        left: -10px; /* Shifted left to keep it flush */
-        top: -45px;  /* Raised to center the much taller check in the 110px row */
-        width: 66px;  /* 3x width (approx) */
-        height: 135px; /* 3x height (approx) */
+        left: 5px; 
+        top: 2px;  /* Re-centered for the smaller footprint */
+        width: 12px;
+        height: 25px;
         border: solid #FF0000;
-        border-width: 0 30px 30px 0; /* 3x thickness */
+        border-width: 0 5px 5px 0; /* Shrunk thickness */
         transform: rotate(45deg);
     }
 
@@ -81,7 +81,7 @@ st.markdown("""
     [data-testid="stCheckbox"] {
         margin: 0 !important;
         padding: 0 !important;
-        height: 110px !important;
+        height: 70px !important;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -142,7 +142,7 @@ def render():
         col_check, col_text = st.columns([0.05, 9.95])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"final_center_{m}")
+            val = st.checkbox("", value=checked, key=f"final_shrunk_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
