@@ -46,7 +46,7 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 15px; /* Shrunk margin to match smaller check */
+        margin-left: 45px; /* Shrunk margin to match smaller check */
         
         display: flex;
         align-items: center; 
@@ -81,7 +81,7 @@ st.markdown("""
     [data-testid="stCheckbox"] {
         margin: 0 !important;
         padding: 0 !important;
-        height: 10px !important;
+        height: 70px !important;
         display: flex;
         align-items: center;
         justify-content: center;
