@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- THE "FLAWLESS CENTER" THEME (SHRUNK 90%) ---
+# --- THE "TIGHT-CENTER" THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -28,63 +28,58 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Milestone Row */
+    /* Milestone Row: Removed fixed height. Row now "shrink-wraps" the text. */
     .milestone-row {
         display: flex;
         align-items: center; 
-        height: 70px; /* Reduced row height to match smaller check */
         border-bottom: 3px solid #000000;
         margin: 0 !important;
-        padding: 0 !important;
+        padding: 8px 0 !important; /* Small padding creates a tight, even look */
         background-color: transparent;
         overflow: visible !important;
     }
 
-    /* Milestone Text: Centered via Flexbox */
+    /* Milestone Text: No longer forced to a specific height */
     .milestone-text {
         font-size: 16pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 45px; /* Shrunk margin to match smaller check */
-        
+        margin-left: 55px;
         display: flex;
-        align-items: center; 
-        height: 70px; 
-        line-height: 0 !important;
+        align-items: center;
+        line-height: 1.2 !important;
     }
 
-    /* Invisible clickable area */
+    /* Invisible clickable hit area */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
-        width: 45px !important;
-        height: 45px !important;
+        width: 50px !important;
+        height: 50px !important;
         cursor: pointer !important;
     }
 
-    /* --- SHRUNK CUSTOM RED CHECKMARK --- */
+    /* Custom Red Checkmark: Positioned relative to the tight row */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
         visibility: visible !important;
         opacity: 1 !important;
         left: 5px; 
-        top: 2px;  /* Re-centered for the smaller footprint */
-        width: 12px;
-        height: 25px;
+        top: -12px; /* Aligns the check hook with the middle of the text */
+        width: 15px;
+        height: 32px;
         border: solid #FF0000;
-        border-width: 0 5px 5px 0; /* Shrunk thickness */
+        border-width: 0 7px 7px 0;
         transform: rotate(45deg);
     }
 
-    /* Ensure checkbox widget centers itself in the row */
+    /* Remove Streamlit default vertical spacing */
     [data-testid="stCheckbox"] {
         margin: 0 !important;
         padding: 0 !important;
-        height: 70px !important;
         display: flex;
         align-items: center;
-        justify-content: center;
     }
 
     [data-testid="stCheckbox"] svg {
@@ -142,7 +137,7 @@ def render():
         col_check, col_text = st.columns([0.05, 9.95])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"final_shrunk_{m}")
+            val = st.checkbox("", value=checked, key=f"tight_fit_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
