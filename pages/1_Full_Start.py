@@ -34,7 +34,7 @@ st.markdown("""
         align-items: center; 
         border-bottom: 3px solid #000000;
         margin: 0 !important;
-        padding: 8px 0 !important; /* Small padding creates a tight, even look */
+        padding: 1px 0 !important; /* Small padding creates a tight, even look */
         background-color: transparent;
         overflow: visible !important;
     }
