@@ -21,8 +21,6 @@ st.markdown(
     <style>
     .stApp { background-color: #000000; color: #28a745; }
     h1, h2, h3, p, span, label { color: #28a745 !important; }
-    
-    /* Dashboard Cards */
     .status-card {
         border: 2px solid #28a745;
         border-radius: 15px;
@@ -31,7 +29,6 @@ st.markdown(
         margin-bottom: 20px;
         text-align: center;
     }
-    
     .bold-divider { 
         border: none; height: 3px; background-color: #28a745; 
         margin-top: 20px; margin-bottom: 20px; opacity: 0.3;
@@ -47,26 +44,42 @@ def get_categories():
     return sorted(cat_ref.to_dict().get("data", []), key=lambda x: x.get('order', 0)) if cat_ref.exists else []
 
 def get_site_status(cat_name):
-    """Pulls the specific Ready/Not Ready signal from the site-specific update"""
     safe_id = cat_name.replace("/", "_").replace(" ", "_")
+    
+    # Check specific milestones for Full Marathon Start
+    if cat_name == "Full Marathon Start":
+        milestone_doc = db.collection("site_statuses").document("full_start").get()
+        if milestone_doc.exists:
+            data = milestone_doc.to_dict()
+            milestones = [
+                "Staff on Site", "Volunteers on Site", "Announcers on Site", 
+                "Timers on Site", "Set up of Start Line is Finished", 
+                "Full Marathon Start is 100%-awaiting Go Ahead"
+            ]
+            completed_count = sum(1 for m in milestones if data.get(m, False))
+            
+            # HARD OVERRIDE: Must be 6/6 to be ready
+            is_ready = (completed_count == 6)
+            return {
+                "completed": is_ready, 
+                "timestamp": f"{completed_count}/6 Milestones" if not is_ready else "READY"
+            }
+    
+    # Default fallback for other categories
     doc = db.collection("settings").document(f"status_{safe_id}").get()
     return doc.to_dict() if doc.exists else {"completed": False, "timestamp": "No Data"}
 
 # --- MAIN DASHBOARD VIEW ---
 st.title("🎛️ Race Operations: Master Dashboard")
-st.write(f"Refreshed: {datetime.now(pytz.timezone('US/Pacific')).strftime('%I:%M:%p')}")
 
 @st.fragment(run_every=5)
 def render_dashboard():
     categories = get_categories()
-    
     if not categories:
-        st.info("No race locations defined. Use the sidebar to add categories.")
+        st.info("No locations found.")
         return
 
-    # Create a grid for the site statuses
-    cols = st.columns(len(categories) if len(categories) > 0 else 1)
-    
+    cols = st.columns(len(categories))
     for i, cat_dict in enumerate(categories):
         cat_name = cat_dict['name']
         status_data = get_site_status(cat_name)
@@ -85,15 +98,10 @@ def render_dashboard():
                     <h1 style="color: {status_color} !important; font-size: 64px; font-weight: 900;">
                         {status_text}
                     </h1>
-                    <p style="font-size: 12px; opacity: 0.6;">Updated: {status_data.get('timestamp')}</p>
+                    <p style="font-size: 14px; opacity: 0.8; font-weight: bold;">{status_data.get('timestamp')}</p>
                 </div>
                 """, 
                 unsafe_allow_html=True
             )
-            
-            # Button to quickly jump to that specific page
-            page_name = cat_name.replace(" ", "_")
-            if st.button(f"View {cat_name} Details", key=f"btn_{i}"):
-                st.switch_page(f"pages/{i+1}_{page_name}.py")
 
 render_dashboard()
