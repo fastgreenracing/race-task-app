@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- CLEAN LIST THEME ---
+# --- MOBILE JUMBO THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -29,24 +29,25 @@ st.markdown("""
         line-height: 1.5;
     }
 
-    /* Jumbo Red Checkmark */
+    /* MOBILE JUMBO CHECKBOX HIT AREA */
     [data-testid="stCheckbox"] div[role="checkbox"] {
-        width: 50px !important;
-        height: 50px !important;
+        width: 80px !important;  /* Increased for finger tapping */
+        height: 80px !important; /* Increased for finger tapping */
         cursor: pointer !important;
-        margin-top: 10px;
+        margin-top: 5px;
     }
 
+    /* SCALED RED CHECKMARK */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
         visibility: visible !important;
-        left: 15px; 
-        top: 2px; 
-        width: 15px; 
-        height: 30px; 
+        left: 25px; 
+        top: 5px; 
+        width: 25px; 
+        height: 50px; 
         border: solid #FF0000;
-        border-width: 0 8px 8px 0; 
+        border-width: 0 10px 10px 0; 
         transform: rotate(45deg);
     }
 
@@ -63,11 +64,10 @@ st.markdown("""
         color: white;
     }
 
-    /* Simple divider style */
     hr {
-        margin: 1em 0 !important;
+        margin: 1.5em 0 !important; /* Slightly more breathing room for mobile */
         border: 0;
-        border-top: 1px solid #CCCCCC;
+        border-top: 2px solid #EEEEEE;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -105,14 +105,14 @@ def render():
 
     st.divider()
 
-    # Pure List Form with Dividers
     for i, m in enumerate(MILESTONES):
         checked = data.get(m, False)
         
-        col_check, col_text = st.columns([0.1, 9.9])
+        # 0.15 width for checkbox ensures the hit zone doesn't overlap text on mobile
+        col_check, col_text = st.columns([0.15, 9.85])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"list_final_{m}")
+            val = st.checkbox("", value=checked, key=f"baseline_mobile_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
@@ -122,7 +122,6 @@ def render():
         with col_text:
             st.markdown(f'<div class="milestone-label">{m}</div>', unsafe_allow_html=True)
         
-        # Add a line after every item except the last one
         if i < len(MILESTONES) - 1:
             st.markdown("---")
 
