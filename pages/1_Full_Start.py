@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- GRID CHECKLIST THEME (TIMES NEW ROMAN) ---
+# --- GRID CHECKLIST THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -21,39 +21,35 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
     }
     
-    /* Title at 24pt */
     h1 {
         font-size: 24pt !important;
         font-family: "Times New Roman", Times, serif !important;
         font-weight: bold !important;
-        margin-bottom: 20px;
         color: #000000 !important;
     }
 
-    /* Individual Milestone Grid Boxes */
-    /* This creates the border around EACH item */
+    /* Individual Milestone Grid Box */
     .milestone-grid {
         border: 1px solid #000000;
         border-radius: 2px;
-        padding: 5px 10px;
-        margin-bottom: 8px;
+        padding: 10px;
+        margin-bottom: 10px;
         display: flex;
         align-items: center;
-        min-height: 60px;
+        min-height: 65px;
         background-color: #FFFFFF;
     }
 
-    /* Standardized Text Size 16pt */
     .milestone-text {
         font-size: 16pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 60px; /* Space for the large floating check */
+        margin-left: 55px; /* Offset to clear the floating checkmark */
         padding-top: 15px;
     }
 
-    /* HIDE THE NATIVE WIDGET BOX */
+    /* Hide native checkbox but keep it clickable */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
         width: 50px !important;
@@ -61,7 +57,7 @@ st.markdown("""
         cursor: pointer !important;
     }
 
-    /* LARGE CUSTOM RED CHECKMARK */
+    /* Custom Red Checkmark */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
@@ -69,14 +65,13 @@ st.markdown("""
         opacity: 1 !important;
         left: 10px;
         top: 2px;
-        width: 18px;
-        height: 38px;
+        width: 20px;
+        height: 40px;
         border: solid #FF0000;
-        border-width: 0 7px 7px 0;
+        border-width: 0 8px 8px 0;
         transform: rotate(45deg);
     }
 
-    /* REMOVE NATIVE SVG */
     [data-testid="stCheckbox"] svg {
         display: none !important;
     }
@@ -113,6 +108,7 @@ def render():
     note_active = data.get("note_active", False)
     emergency = data.get("emergency_cancel", False)
 
+    # Status Logic Header
     if emergency:
         st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
     elif director_signal or note_active: 
@@ -125,14 +121,12 @@ def render():
 
     st.divider()
 
-    # Render each milestone inside its own grid box
+    # Checklist Rendering within Grids
     for m in MILESTONES:
         checked = data.get(m, False)
         
-        # HTML for the grid box start
-        st.markdown(f'<div class="milestone-grid">', unsafe_allow_html=True)
-        
-        col1, col2 = st.columns([0.08, 9.92])
+        st.markdown('<div class="milestone-grid">', unsafe_allow_html=True)
+        col1, col2 = st.columns([0.1, 9.9])
         with col1:
             val = st.checkbox("", value=checked, key=f"grid_{m}")
             if val != checked:
@@ -141,4 +135,8 @@ def render():
                     doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
         with col2:
-            st.markdown(f'<div
+            st.markdown(f'<div class="milestone-text">{m}</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    render()
