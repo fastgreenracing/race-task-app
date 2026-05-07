@@ -16,7 +16,7 @@ TIMEZONE = pytz.timezone("America/Los_Angeles")
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- BASELINE THEME ---
+# --- BASELINE CSS ---
 st.markdown("""
     <style>
     .stApp {
@@ -41,8 +41,9 @@ st.markdown("""
     .note-timestamp {
         font-size: 14pt !important;
         display: block;
-        margin-top: 5px;
+        margin-top: 8px;
         opacity: 0.9;
+        font-weight: normal;
     }
 
     [data-testid="stCheckbox"] div[role="checkbox"] {
@@ -107,20 +108,27 @@ def render():
     emergency = data.get("emergency_cancel", False)
     note_ts = data.get("note_timestamp", "")
 
-    # Status Header with Note Timestamp
+    # --- STATUS HEADER LOGIC ---
     if emergency:
         st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
+    
+    # 1. FINAL GO-AHEAD (Director Signal or Active Note)
     elif director_signal or note_active: 
-        msg = data.get("custom_note", "Okay to start ontime") if note_active else "Okay to start ontime"
-        ts_html = f"<span class='note-timestamp'>Sent at: {note_ts}</span>" if note_ts else ""
+        msg = data.get("custom_note", "Okay to start ontime") if (note_active and data.get("custom_note")) else "Okay to start ontime"
+        ts_html = f"<div class='note-timestamp'>Signal Received: {note_ts}</div>" if note_ts else ""
         st.markdown(f"<div class='status-header' style='background:#008000;'><h1>🚀 {msg}{ts_html}</h1></div>", unsafe_allow_html=True)
-    elif count == 6:
+    
+    # 2. SITE LEAD READY (All milestones checked, waiting for Director)
+    elif count == len(MILESTONES):
         st.markdown("<div class='status-header' style='background:#FFD700; color:black;'><h1>⏳ WAITING FOR DIRECTOR</h1></div>", unsafe_allow_html=True)
+    
+    # 3. IN PROGRESS
     else:
-        st.markdown(f"<div class='status-header' style='background:#EEEEEE; color:black;'><h1>PREPARING ({count}/6)</h1></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='status-header' style='background:#EEEEEE; color:black;'><h1>PREPARING ({count}/{len(MILESTONES)})</h1></div>", unsafe_allow_html=True)
 
     st.divider()
 
+    # --- MILESTONE LIST ---
     for i, m in enumerate(MILESTONES):
         checked = data.get(m, False)
         ts_key = f"{m}_ts"
@@ -129,7 +137,7 @@ def render():
         col_check, col_text = st.columns([0.15, 9.85])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"baseline_v2_{m}")
+            val = st.checkbox("", value=checked, key=f"baseline_v3_{m}")
             if val != checked:
                 now = datetime.now(TIMEZONE)
                 current_ts = now.strftime("%I:%M:%S %p")
@@ -137,7 +145,7 @@ def render():
                 update_payload = {m: val, ts_key: current_ts if val else ""}
                 doc_ref.set(update_payload, merge=True)
                 
-                # Log entry
+                # Log action to Firestore
                 db.collection("milestone_logs").add({
                     "milestone": m,
                     "action": "Completed" if val else "Unchecked",
@@ -146,6 +154,7 @@ def render():
                     "event_id": "full_start_FINAL"
                 })
 
+                # Safety: If Site Lead unchecks a milestone, kill the Green light
                 if not val: 
                     doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
@@ -160,3 +169,4 @@ def render():
 
 if __name__ == "__main__":
     render()
+    
