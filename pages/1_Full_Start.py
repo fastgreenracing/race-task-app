@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- THE "GHOST-KILLER" THEME ---
+# --- THE "ZERO-OPACITY" THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -38,7 +38,7 @@ st.markdown("""
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {
         border: 1px solid #000000 !important;
         border-radius: 2px;
-        padding: 0px 10px !important;
+        padding: 5px 12px !important;
         margin-bottom: 4px !important;
         background: #FFFFFF;
         display: flex;
@@ -47,27 +47,33 @@ st.markdown("""
         overflow: visible !important;
     }
     
-    /* 2. THE TOTAL WIDGET HIDE */
-    [data-testid="stCheckbox"] {
-        visibility: hidden !important; /* Hides the base box and label completely */
-        width: 1px !important;
-        height: 1px !important;
-        overflow: visible !important;
-    }
-
-    /* 3. REVEAL ONLY THE CHECKMARK ICON */
-    [data-testid="stCheckbox"] svg {
-        visibility: visible !important; /* Overrides the parent hidden state */
-        fill: #FF0000 !important;
-        transform: scale(3.5) translateX(-2px); /* Makes it large and positions it */
-        z-index: 999;
-    }
-
-    /* 4. CLEAN UP RESIDUAL BORDERS */
+    /* 2. MAKE THE NATIVE BOX INVISIBLE BUT CLICKABLE */
     [data-testid="stCheckbox"] div[role="checkbox"] {
-        border: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
+        opacity: 0 !important; /* Hide the box */
+        width: 40px !important;
+        height: 40px !important;
+        cursor: pointer !important;
+    }
+
+    /* 3. CREATE THE CUSTOM RED CHECKMARK */
+    /* This draws an 'L' shape and rotates it to look like a checkmark */
+    [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
+        content: '' !important;
+        position: absolute;
+        visibility: visible !important;
+        opacity: 1 !important;
+        left: 12px;
+        top: 4px;
+        width: 12px;
+        height: 22px;
+        border: solid #FF0000;
+        border-width: 0 4px 4px 0;
+        transform: rotate(45deg);
+    }
+
+    /* 4. HIDE STREAMLIT'S NATIVE SVG SO IT DOESN'T OVERLAP */
+    [data-testid="stCheckbox"] svg {
+        display: none !important;
     }
 
     .status-header {
@@ -102,7 +108,7 @@ def render():
         st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
     elif director_signal or note_active: 
         msg = data.get("custom_note", "Okay to start ontime") if note_active else "Okay to start ontime"
-        st.markdown(f"<div class='status-header' style='background:#008000;'><h1>🚀 {msg}</h1></div>", unsafe_allow_html=True)
+        st.markdown(f<div class='status-header' style='background:#008000;'><h1>🚀 {msg}</h1></div>", unsafe_allow_html=True)
     elif count == 6:
         st.markdown("<div class='status-header' style='background:#FFD700; color:black;'><h1>⏳ WAITING FOR DIRECTOR</h1></div>", unsafe_allow_html=True)
     else:
@@ -112,8 +118,7 @@ def render():
 
     for m in MILESTONES:
         checked = data.get(m, False)
-        # Using a very tiny column for the "invisible" widget anchor
-        col1, col2 = st.columns([0.05, 9.95]) 
+        col1, col2 = st.columns([0.5, 9.5]) 
         with col1:
             val = st.checkbox("", value=checked, key=f"m_{m}")
             if val != checked:
@@ -122,7 +127,7 @@ def render():
                     doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
         with col2:
-            st.markdown(f"<div style='margin-left:55px; padding-top:2px;'><b>{m}</b></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='margin-left:20px; padding-top:12px;'><b>{m}</b></div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     render()
