@@ -100,4 +100,38 @@ MILESTONES = [
 def render():
     st.title("Full Marathon Start Checklist")
     doc_ref = db.collection("site_statuses").document("full_start_FINAL")
-    data
+    data = doc_ref.get().to_dict() or {}
+    
+    count = sum(1 for m in MILESTONES if data.get(m) == True)
+    director_signal = data.get("director_signal", False)
+    note_active = data.get("note_active", False)
+    emergency = data.get("emergency_cancel", False)
+
+    if emergency:
+        st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
+    elif director_signal or note_active: 
+        msg = data.get("custom_note", "Okay to start ontime") if note_active else "Okay to start ontime"
+        st.markdown(f"<div class='status-header' style='background:#008000;'><h1>🚀 {msg}</h1></div>", unsafe_allow_html=True)
+    elif count == 6:
+        st.markdown("<div class='status-header' style='background:#FFD700; color:black;'><h1>⏳ WAITING FOR DIRECTOR</h1></div>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"<div class='status-header' style='background:#EEEEEE; color:black;'><h1>PREPARING ({count}/6)</h1></div>", unsafe_allow_html=True)
+
+    st.divider()
+
+    for m in MILESTONES:
+        checked = data.get(m, False)
+        # We give the checkbox almost no space, forcing it to be a tiny anchor point
+        col1, col2 = st.columns([0.1, 9.9])
+        with col1:
+            val = st.checkbox("", value=checked, key=f"m_{m}")
+            if val != checked:
+                doc_ref.set({m: val}, merge=True)
+                if not val: 
+                    doc_ref.update({"director_signal": False, "note_active": False})
+                st.rerun()
+        with col2:
+            st.markdown(f"<div style='padding-top:12px; margin-left:35px;'><b>{m}</b></div>", unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    render()
