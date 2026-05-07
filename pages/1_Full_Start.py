@@ -18,16 +18,18 @@ def render():
     
     count = sum(1 for m in MILESTONES if data.get(m) == True)
     director_signal = data.get("director_signal", False)
+    note_active = data.get("note_active", False)
+    custom_note = data.get("custom_note", "")
 
-    # VISUAL HEADER FOR SITE LEAD
+    # VISUAL HEADER LOGIC
     if director_signal:
-        # Green Signal received from Director
         st.markdown("<div style='background:#1b5e20; padding:30px; border-radius:15px; text-align:center; border: 5px solid #28a745;'><h1>🚀 Okay to start ontime</h1></div>", unsafe_allow_html=True)
+    elif note_active:
+        # Green but displaying the Director's specific note
+        st.markdown(f"<div style='background:#1b5e20; padding:30px; border-radius:15px; text-align:center; border: 5px solid #28a745;'><p style='color:white !important; font-size:18px;'>DIRECTOR NOTE:</p><h1>⚡ {custom_note}</h1></div>", unsafe_allow_html=True)
     elif count == 6:
-        # Yellow - All boxes checked, waiting for you
         st.markdown("<div style='background:#5a4100; padding:30px; border-radius:15px; text-align:center; border: 2px solid #ffc107;'><h1>⏳ WAITING FOR DIRECTOR APPROVAL...</h1></div>", unsafe_allow_html=True)
     else:
-        # Red - Still working on milestones
         st.markdown(f"<div style='background:#4c0000; padding:20px; border-radius:15px; text-align:center;'><h1>NO GO ({count}/6)</h1></div>", unsafe_allow_html=True)
 
     st.divider()
@@ -38,8 +40,7 @@ def render():
             val = st.checkbox("", value=checked, key=f"m_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
-                # Auto-reset approval if something is unchecked
-                if not val: doc_ref.update({"director_signal": False})
+                if not val: doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
         with col2: st.markdown(f"## {m}")
 
