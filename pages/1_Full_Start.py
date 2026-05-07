@@ -51,14 +51,6 @@ st.markdown("""
         line-height: 1.0 !important; /* Tightened line height */
     }
 
-    /* Invisible clickable area */
-    [data-testid="stCheckbox"] div[role="checkbox"] {
-        opacity: 0 !important;
-        width: 50px !important;
-        height: 50px !important;
-        cursor: pointer !important;
-    }
-
     /* Custom Red Checkmark: Adjusted top value to follow the new row padding */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
@@ -67,6 +59,7 @@ st.markdown("""
         opacity: 1 !important;
         left: 5px; 
         top: -15px; /* Nudged up to stay level with the text */
+        padding: 5px 0 -150px 0 !important; 
         width: 15px;
         height: 32px;
         border: solid #FF0000;
