@@ -30,7 +30,7 @@ def get_now():
 
 @st.fragment(run_every=5)
 def render():
-    st.title(f"🏁 {THIS_LOCATION}")
+    st.title(f"🏁 {THIS_LOCATION} Site Lead")
     doc_ref = db.collection("site_statuses").document("full_start")
     data = doc_ref.get().to_dict() or {}
 
@@ -48,16 +48,13 @@ def render():
         with col1:
             val = st.checkbox("", value=checked, key=f"m_{m}")
             if val != checked:
-                # Update Milestone
+                # Update Milestone in DB
                 doc_ref.set({m: val}, merge=True)
                 
-                # Force Update Master Dashboard Status
-                new_data = doc_ref.get().to_dict() or {}
-                new_count = sum(1 for milestone in MILESTONES if new_data.get(milestone, False))
-                
-                safe_id = THIS_LOCATION.replace(" ", "_")
+                # Also update the settings doc for any legacy logic
+                safe_id = THIS_LOCATION.replace("/", "_").replace(" ", "_")
                 db.collection("settings").document(f"status_{safe_id}").set({
-                    "completed": (new_count == 6),
+                    "completed": (count + (1 if val else -1) == 6),
                     "timestamp": get_now()
                 }, merge=True)
                 st.rerun()
