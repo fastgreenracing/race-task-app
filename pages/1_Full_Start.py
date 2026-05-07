@@ -46,6 +46,7 @@ st.markdown("""
         color: #000000 !important;
         font-weight: bold !important;
         margin-left: 55px;
+         padding: 1px 0 !important; /* Small padding creates a tight, even look */
         display: flex;
         align-items: center;
         line-height: 1.2 !important;
