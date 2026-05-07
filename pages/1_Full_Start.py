@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- REFINED ALIGNMENT: CENTERED TEXT & LEFT-FLUSH CHECKMARK ---
+# --- THE "GHOST-KILLER" THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -38,41 +38,36 @@ st.markdown("""
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {
         border: 1px solid #000000 !important;
         border-radius: 2px;
-        padding: 0px 10px !important; /* Minimal vertical padding for tighter fit */
+        padding: 0px 10px !important;
         margin-bottom: 4px !important;
         background: #FFFFFF;
         display: flex;
-        align-items: center; /* PERFECT VERTICAL CENTERING */
+        align-items: center; 
+        min-height: 55px;
         overflow: visible !important;
-        min-height: 50px; /* Ensures a consistent height for the text row */
     }
     
-    /* 2. THE FLOATING CHECKMARK */
+    /* 2. THE TOTAL WIDGET HIDE */
     [data-testid="stCheckbox"] {
-        border: none !important;
-        background: transparent !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        width: 1px !important; /* Effectively invisible footprint */
+        visibility: hidden !important; /* Hides the base box and label completely */
+        width: 1px !important;
         height: 1px !important;
         overflow: visible !important;
-        /* Pulls the checkmark left and centers it vertically */
-        transform: scale(2.6) translateX(-2px) translateY(-2px); 
-        z-index: 99;
     }
 
-    /* 3. STRIP ALL INTERNAL BOX ARTIFACTS */
-    [data-testid="stCheckbox"] [role="checkbox"],
-    [data-testid="stCheckbox"] div[data-testid="stWidgetLabel"] div {
+    /* 3. REVEAL ONLY THE CHECKMARK ICON */
+    [data-testid="stCheckbox"] svg {
+        visibility: visible !important; /* Overrides the parent hidden state */
+        fill: #FF0000 !important;
+        transform: scale(3.5) translateX(-2px); /* Makes it large and positions it */
+        z-index: 999;
+    }
+
+    /* 4. CLEAN UP RESIDUAL BORDERS */
+    [data-testid="stCheckbox"] div[role="checkbox"] {
         border: none !important;
         background: transparent !important;
-        background-color: transparent !important;
         box-shadow: none !important;
-        outline: none !important;
-    }
-
-    [data-testid="stCheckbox"] svg {
-        fill: #FF0000 !important;
     }
 
     .status-header {
@@ -117,8 +112,8 @@ def render():
 
     for m in MILESTONES:
         checked = data.get(m, False)
-        # Ratio changed to give more room to text and keep the checkbox anchored far left
-        col1, col2 = st.columns([0.08, 9.92]) 
+        # Using a very tiny column for the "invisible" widget anchor
+        col1, col2 = st.columns([0.05, 9.95]) 
         with col1:
             val = st.checkbox("", value=checked, key=f"m_{m}")
             if val != checked:
@@ -127,7 +122,6 @@ def render():
                     doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
         with col2:
-            # margin-left: 50px provides the buffer so the scaled checkmark doesn't hit the text
             st.markdown(f"<div style='margin-left:55px; padding-top:2px;'><b>{m}</b></div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
