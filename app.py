@@ -35,21 +35,24 @@ def get_categories():
     return sorted(cat_ref.to_dict().get("data", []), key=lambda x: x.get('order', 0)) if cat_ref.exists else []
 
 def get_site_status(cat_name):
-    # HARD CHECK for Full Marathon Start
+    # --- STRICTOR CHECK FOR FULL MARATHON START ---
     if cat_name == "Full Marathon Start":
+        # Pull the specific milestone record
         doc = db.collection("site_statuses").document("full_start").get()
         if doc.exists:
             data = doc.to_dict()
-            # Explicit list of the 6 milestones
             m_list = [
                 "Staff on Site", "Volunteers on Site", "Announcers on Site", 
                 "Timers on Site", "Set up of Start Line is Finished", 
                 "Full Marathon Start is 100%-awaiting Go Ahead"
             ]
+            # Manually count True values
             count = sum(1 for m in m_list if data.get(m, False))
-            return {"completed": (count == 6), "display": f"{count}/6 READY"}
+            # ONLY return True if count is exactly 6
+            is_ready = (count == 6)
+            return {"completed": is_ready, "display": f"{count}/6 MILESTONES"}
     
-    # Fallback for other sites
+    # Fallback for other locations
     safe_id = cat_name.replace("/", "_").replace(" ", "_")
     doc = db.collection("settings").document(f"status_{safe_id}").get()
     res = doc.to_dict() if doc.exists else {"completed": False}
@@ -74,9 +77,10 @@ def render_dashboard():
         with cols[i]:
             st.markdown(f"""
                 <div class="status-card" style="border-color: {color};">
-                    <h3>{name}</h3>
-                    <h1 style="color: {color} !important; font-size: 54px;">{text}</h1>
-                    <p>{status['display']}</p>
+                    <p style="font-size: 12px; opacity: 0.7;">LOCATION</p>
+                    <h3 style="margin-top: 0;">{name}</h3>
+                    <h1 style="color: {color} !important; font-size: 54px; font-weight: 900;">{text}</h1>
+                    <p style="font-weight: bold;">{status['display']}</p>
                 </div>
             """, unsafe_allow_html=True)
 
