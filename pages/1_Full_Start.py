@@ -46,7 +46,7 @@ st.markdown("""
         color: #000000 !important;
         font-weight: bold !important;
         padding-bottom: 60px !important; /* Minimal buffer from line */
-        padding-top: 60px !important;   /* Large top padding for height */
+        padding-top: 45px !important;   /* Large top padding for height */
         line-height: 1.0 !important;
     }
 
