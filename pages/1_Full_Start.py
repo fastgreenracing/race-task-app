@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- NO-GAP JUMBO THEME ---
+# --- THE "ZERO-GAP" JUMBO THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -25,32 +25,40 @@ st.markdown("""
         font-size: 24pt !important;
         font-family: "Times New Roman", Times, serif !important;
         font-weight: bold !important;
-        color: #000000 !important;
     }
 
-    /* Milestone Row: High top padding, ZERO bottom padding to kill the gap */
+    /* Milestone Row: Acts like a table row to force bottom alignment */
     .milestone-row {
-        display: flex;
-        align-items: flex-end; /* Align content to the bottom border */
-        border-bottom: 3px solid #000000;
+        display: table;
+        width: 100%;
+        border-bottom: 4px solid #000000; /* Extra thick border */
         margin: 0 !important;
-        padding: 60px 0 0px 0 !important; /* Force content down to the line */
+        padding: 0 !important;
         background-color: transparent;
-        overflow: visible !important;
     }
 
-    /* Jumbo Text */
+    /* Milestone Text: Anchored to the very bottom */
     .milestone-text {
+        display: table-cell;
+        vertical-align: bottom;
         font-size: 24pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 100px; /* Space for doubled checkmark */
+        padding-bottom: 2px !important; /* Minimal buffer from line */
+        padding-top: 60px !important;   /* Large top padding for height */
         line-height: 1.0 !important;
-        padding-bottom: 5px; /* Tiny buffer so text doesn't touch the line */
     }
 
-    /* Invisible clickable area */
+    /* Checkbox Container: Also anchored to bottom */
+    .check-container {
+        display: table-cell;
+        vertical-align: bottom;
+        width: 120px;
+        padding-bottom: 0px !important;
+    }
+
+    /* Invisible clickable area: Large hit zone */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
         width: 100px !important;
@@ -58,26 +66,25 @@ st.markdown("""
         cursor: pointer !important;
     }
 
-    /* Doubled Custom Red Checkmark (100% Increase) */
+    /* DOUBLE SCALE RED CHECKMARK (100% Increase) */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
         visibility: visible !important;
         opacity: 1 !important;
-        left: 0px; 
-        top: -45px; /* Adjusted for massive scale */
-        width: 45px; /* Doubled */
-        height: 95px; /* Doubled */
+        left: 10px; 
+        top: -65px; /* Adjusted to keep the massive check level with jumbo text */
+        width: 40px; 
+        height: 85px; 
         border: solid #FF0000;
-        border-width: 0 20px 20px 0; /* Doubled thickness */
+        border-width: 0 18px 18px 0; /* Massive thickness */
         transform: rotate(45deg);
     }
 
+    /* Remove Streamlit default spacing */
     [data-testid="stCheckbox"] {
         margin: 0 !important;
         padding: 0 !important;
-        display: flex;
-        align-items: flex-end;
     }
 
     [data-testid="stCheckbox"] svg {
@@ -131,21 +138,29 @@ def render():
     for m in MILESTONES:
         checked = data.get(m, False)
         
-        st.markdown('<div class="milestone-row">', unsafe_allow_html=True)
-        col_check, col_text = st.columns([0.05, 9.95])
+        # New Table-Row approach to force bottom alignment
+        st.markdown(f'''
+            <div class="milestone-row">
+                <div class="check-container" id="check_{m}"></div>
+                <div class="milestone-text">{m}</div>
+            </div>
+        ''', unsafe_allow_html=True)
         
-        with col_check:
-            val = st.checkbox("", value=checked, key=f"precision_jumbo_{m}")
+        # Inject the actual checkbox into the container
+        # Note: Streamlit widgets usually render in order, 
+        # so we keep the columns for functional logic but hide the gap
+        col1, col2 = st.columns([0.1, 9.9])
+        with col1:
+            # Shift the widget up into the table row space using a negative margin
+            st.markdown('<div style="margin-top:-60px;">', unsafe_allow_html=True)
+            val = st.checkbox("", value=checked, key=f"final_jumbo_{m}")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
                     doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
-        
-        with col_text:
-            st.markdown(f'<div class="milestone-text">{m}</div>', unsafe_allow_html=True)
-            
-        st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     render()
