@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- PRECISION ALIGNMENT THEME ---
+# --- PRECISION GRID ALIGNMENT THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -32,13 +32,12 @@ st.markdown("""
     .milestone-grid {
         border: 1px solid #000000;
         border-radius: 2px;
-        padding: 0px 15px !important;
-        margin-bottom: 8px;
+        padding: 5px 15px !important;
+        margin-bottom: 10px;
         display: flex;
-        align-items: center; /* Vertical Center for everything */
-        min-height: 65px;
+        align-items: center; /* Vertically centers the checkbox column and text column */
+        min-height: 70px;
         background-color: #FFFFFF;
-        position: relative;
     }
 
     /* Milestone Text Styling */
@@ -47,17 +46,15 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 50px; /* Space for the checkmark */
-        display: flex;
-        align-items: center;
-        height: 65px; /* Matches grid min-height for centering */
+        margin-left: 50px; /* Space to prevent text overlap with the large check */
+        padding-top: 2px;
     }
 
-    /* Invisible clickable area */
+    /* Invisible clickable area for native checkbox */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
-        width: 55px !important;
-        height: 55px !important;
+        width: 50px !important;
+        height: 50px !important;
         cursor: pointer !important;
     }
 
@@ -68,15 +65,15 @@ st.markdown("""
         visibility: visible !important;
         opacity: 1 !important;
         left: 10px;
-        top: 2px;
-        width: 18px;
-        height: 38px;
+        top: -5px; /* Adjusted to center the check within the taller grid */
+        width: 20px;
+        height: 40px;
         border: solid #FF0000;
-        border-width: 0 7px 7px 0;
+        border-width: 0 8px 8px 0;
         transform: rotate(45deg);
     }
 
-    /* Cleanup Native Streamlit Elements */
+    /* Cleanup Native Streamlit Overlays */
     [data-testid="stCheckbox"] svg {
         display: none !important;
     }
@@ -84,6 +81,8 @@ st.markdown("""
     [data-testid="stCheckbox"] {
         margin-bottom: 0 !important;
         padding-bottom: 0 !important;
+        display: flex;
+        align-items: center;
     }
 
     .status-header {
@@ -118,6 +117,7 @@ def render():
     note_active = data.get("note_active", False)
     emergency = data.get("emergency_cancel", False)
 
+    # Status Logic Header
     if emergency:
         st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
     elif director_signal or note_active: 
@@ -130,21 +130,27 @@ def render():
 
     st.divider()
 
-    # Checklist Rendering within Grids
+    # Rendering logic: Checkbox and Verbiage INSIDE the Grid
     for m in MILESTONES:
         checked = data.get(m, False)
         
+        # This div wraps the columns, ensuring the border goes around both
         st.markdown('<div class="milestone-grid">', unsafe_allow_html=True)
-        col1, col2 = st.columns([0.05, 9.95]) # Tighter first column for flush checkmark
-        with col1:
-            val = st.checkbox("", value=checked, key=f"grid_{m}")
+        
+        col_check, col_text = st.columns([0.1, 9.9])
+        
+        with col_check:
+            val = st.checkbox("", value=checked, key=f"grid_in_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
                     doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
-        with col2:
+        
+        with col_text:
+            # Displays the verbiage inside the second column of the grid
             st.markdown(f'<div class="milestone-text">{m}</div>', unsafe_allow_html=True)
+            
         st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
