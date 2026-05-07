@@ -48,7 +48,7 @@ st.markdown("""
         font-weight: bold !important;
         margin-left: 65px;
         display: flex;
-        align-items: center;
+        align-items: vertically center;
         line-height: 1 !important;
     }
 
