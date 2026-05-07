@@ -79,7 +79,7 @@ st.markdown("""
     [data-testid="stCheckbox"] {
         margin: 0 !important;
         padding: 0 !important;
-        height: 17px !important;
+        height: 0px !important;
         display: flex;
         align-items: center;
     }
