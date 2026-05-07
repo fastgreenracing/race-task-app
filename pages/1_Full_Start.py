@@ -28,7 +28,7 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Milestone Row: Asymmetrical padding to force visual centering */
+    /* Milestone Row: Symmetrical padding to force visual centering */
     .milestone-row {
         display: flex;
         align-items: center; 
