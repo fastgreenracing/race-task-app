@@ -40,7 +40,7 @@ st.markdown("""
     /* Milestone Text: Anchored to the very bottom */
     .milestone-text {
         display: table-cell;
-        vertical-align: bottom;
+        vertical-align: center;
         font-size: 24pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
