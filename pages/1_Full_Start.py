@@ -35,7 +35,7 @@ st.markdown("""
         border-bottom: 3px solid #000000;
         margin: 0 !important;
         /* Increase TOP, Decrease BOTTOM to kill the purple-box gap */
-        padding: 25px 0 5px 0 !important; 
+        padding: 5px 0 5px 0 !important; 
         background-color: transparent;
         overflow: visible !important;
     }
