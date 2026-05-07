@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- THICK DIVIDER THEME ---
+# --- ALIGNMENT & THICK BORDER THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -28,13 +28,13 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Milestone Row with THICK Bottom Border */
+    /* Milestone Row: Centers all content vertically between thick lines */
     .milestone-row {
         display: flex;
-        align-items: center;
-        min-height: 10px; /* Increased height for thicker borders */
-        border-bottom: 3px solid #000000; /* Bold Divider */
-        padding: 10px 0;
+        align-items: center; 
+        min-height: 90px; /* Tall enough for the large checkmark */
+        border-bottom: 3px solid #000000;
+        padding: 0 10px;
         background-color: transparent;
     }
 
@@ -43,33 +43,35 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 55px;
-        padding-top: 10px;
+        margin-left: 65px; /* Space for the massive checkmark */
+        display: flex;
+        align-items: center;
     }
 
-    /* Invisible clickable area */
+    /* Invisible clickable area - Made larger to match visual checkmark */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
-        width: 60px !important;
-        height: 60px !important;
+        width: 75px !important;
+        height: 75px !important;
         cursor: pointer !important;
     }
 
-    /* Large Red Checkmark */
+    /* Massive Custom Red Checkmark */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
         visibility: visible !important;
         opacity: 1 !important;
-        left: 5px;
-        top: -8px; 
-        width: 20px;
-        height: 42px;
+        left: 0px; 
+        top: -12px; /* Centering tweak for the large scale */
+        width: 25px;
+        height: 50px;
         border: solid #FF0000;
-        border-width: 0 9px 9px 0; /* Thicker checkmark to match thick border */
+        border-width: 0 10px 10px 0; /* Bold check lines */
         transform: rotate(45deg);
     }
 
+    /* Remove Streamlit default graphics */
     [data-testid="stCheckbox"] svg {
         display: none !important;
     }
@@ -77,6 +79,8 @@ st.markdown("""
     [data-testid="stCheckbox"] {
         margin-bottom: 0 !important;
         padding-bottom: 0 !important;
+        display: flex;
+        align-items: center;
     }
 
     .status-header {
@@ -130,7 +134,7 @@ def render():
         col_check, col_text = st.columns([0.05, 9.95])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"thick_{m}")
+            val = st.checkbox("", value=checked, key=f"final_align_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
