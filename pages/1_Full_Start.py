@@ -41,7 +41,7 @@ st.markdown("""
     }
 
     .milestone-text {
-        font-size: 16pt !important;
+        font-size: 24pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
