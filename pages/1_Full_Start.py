@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- THE "TIGHT-CENTER" THEME ---
+# --- THE "PRECISION BALANCE" THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -28,46 +28,45 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Milestone Row: Removed fixed height. Row now "shrink-wraps" the text. */
+    /* Milestone Row: Asymmetrical padding to force visual centering */
     .milestone-row {
         display: flex;
         align-items: center; 
         border-bottom: 3px solid #000000;
         margin: 0 !important;
-        padding: 1px 0 !important; /* Small padding creates a tight, even look */
+        /* Increase TOP, Decrease BOTTOM to kill the purple-box gap */
+        padding: 25px 0 5px 0 !important; 
         background-color: transparent;
         overflow: visible !important;
     }
 
-    /* Milestone Text: No longer forced to a specific height */
     .milestone-text {
         font-size: 16pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
         margin-left: 55px;
-         padding: 10px 0 !important; /* Small padding creates a tight, even look */
         display: flex;
         align-items: center;
-        line-height: 1.2 !important;
+        line-height: 1.0 !important; /* Tightened line height */
     }
 
-    /* Clickable hit area */
+    /* Invisible clickable area */
     [data-testid="stCheckbox"] div[role="checkbox"] {
-        opacity: 100 !important;
+        opacity: 0 !important;
         width: 50px !important;
         height: 50px !important;
         cursor: pointer !important;
     }
 
-    /* Custom Red Checkmark: Positioned relative to the tight row */
+    /* Custom Red Checkmark: Adjusted top value to follow the new row padding */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
         visibility: visible !important;
         opacity: 1 !important;
         left: 5px; 
-        top: -12px; /* Aligns the check hook with the middle of the text */
+        top: -15px; /* Nudged up to stay level with the text */
         width: 15px;
         height: 32px;
         border: solid #FF0000;
@@ -138,7 +137,7 @@ def render():
         col_check, col_text = st.columns([0.05, 9.95])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"tight_fit_{m}")
+            val = st.checkbox("", value=checked, key=f"balanced_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
