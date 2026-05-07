@@ -32,7 +32,7 @@ st.markdown("""
     .milestone-row {
         display: flex;
         align-items: center; 
-        height: 70px; /* Adjusted height to feel tighter and professional */
+        height: 00px; /* Adjusted height to feel tighter and professional */
         border-bottom: 3px solid #000000;
         margin: 0 !important;
         padding: 0 !important;
