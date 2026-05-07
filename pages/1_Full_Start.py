@@ -32,8 +32,8 @@ st.markdown("""
     .milestone-row {
         display: flex;
         align-items: center; 
-        min-height: 75px; /* Reduced to pull border up */
-        max-height: 75px;
+        min-height: 16px; /* Reduced to pull border up */
+        max-height: 16px;
         border-bottom: 3px solid #000000;
         padding: 0;
         margin: 0;
@@ -55,8 +55,8 @@ st.markdown("""
     /* Invisible clickable area - Height set to match row to remove gap */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
-        width: 70px !important;
-        height: 70px !important;
+        width: 15px !important;
+        height: 15px !important;
         cursor: pointer !important;
     }
 
@@ -68,8 +68,8 @@ st.markdown("""
         opacity: 1 !important;
         left: 0px; 
         top: -10px; 
-        width: 22px;
-        height: 45px;
+        width: 15px;
+        height: 15px;
         border: solid #FF0000;
         border-width: 0 10px 10px 0;
         transform: rotate(45deg);
@@ -79,7 +79,7 @@ st.markdown("""
     [data-testid="stCheckbox"] {
         margin: 0 !important;
         padding: 0 !important;
-        height: 70px !important;
+        height: 17px !important;
         display: flex;
         align-items: center;
     }
