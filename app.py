@@ -12,14 +12,49 @@ else:
     st.error("Firestore secrets not found.")
     st.stop()
 
-# Set Timezone to Pacific for consistency across the event
 TIMEZONE = pytz.timezone("America/Los_Angeles")
 
 st.set_page_config(page_title="Race Director Dashboard", layout="wide")
 
 st.title("🏃‍♂️ Race Director Command Center")
 
-# --- DIRECTOR CONTROL PANEL ---
+# --- DATABASE REFERENCE ---
+doc_ref = db.collection("site_statuses").document("full_start_FINAL")
+data = doc_ref.get().to_dict() or {}
+
+# --- MILESTONE TRACKING LOGIC ---
+MILESTONES = [
+    "Staff on Site",
+    "Volunteers on Site",
+    "Announcers on Site",
+    "Timers on Site",
+    "Set up of Start Line is Finished",
+    "Full Marathon Start is 100%-awaiting Go Ahead"
+]
+
+count = sum(1 for m in MILESTONES if data.get(m) == True)
+
+# --- 1. LIVE PROGRESS MONITOR ---
+st.header("Ground Operations Progress")
+progress_pct = count / len(MILESTONES)
+st.progress(progress_pct)
+
+if count == len(MILESTONES):
+    st.warning("⚠️ ALL MILESTONES COMPLETE: Site Lead is awaiting your Go Ahead.")
+else:
+    st.info(f"Status: {count} of {len(MILESTONES)} milestones completed.")
+
+# Show which specific milestones are done
+with st.expander("View Milestone Details"):
+    for m in MILESTONES:
+        is_done = data.get(m, False)
+        ts = data.get(f"{m}_ts", "")
+        status_char = "✅" if is_done else "⬜"
+        st.write(f"{status_char} **{m}** {f'({ts})' if ts else ''}")
+
+st.divider()
+
+# --- 2. DIRECTOR CONTROL PANEL ---
 st.header("Start Line Communications")
 
 with st.container(border=True):
@@ -33,21 +68,17 @@ with st.container(border=True):
         send_btn = st.button("🚀 Send Note & Go", use_container_width=True)
         clear_btn = st.button("🧹 Clear All Signals", use_container_width=True)
 
-# 2. Database Reference
-doc_ref = db.collection("site_statuses").document("full_start_FINAL")
-
-# --- SEND LOGIC WITH TIMESTAMP ---
+# --- SEND LOGIC ---
 if send_btn:
-    # Capture the exact time of the Director's action
     now_ts = datetime.now(TIMEZONE).strftime("%I:%M:%S %p")
-    
     doc_ref.update({
         "custom_note": custom_msg if custom_msg else "Okay to start ontime",
         "note_active": True,
         "director_signal": True,
-        "note_timestamp": now_ts # This timestamp feeds the Baseline sub-pages
+        "note_timestamp": now_ts
     })
-    st.success(f"Signal and note broadcasted at {now_ts}")
+    st.success(f"Signal sent at {now_ts}")
+    st.rerun()
 
 # --- CLEAR LOGIC ---
 if clear_btn:
@@ -55,21 +86,22 @@ if clear_btn:
         "note_active": False,
         "director_signal": False,
         "custom_note": "",
-        "note_timestamp": "", # Wipes the timestamp for the next event
+        "note_timestamp": "",
         "emergency_cancel": False
     })
-    st.warning("All signals cleared and reset for next heat.")
+    # Optional: Also clear milestones if you want a total reset
+    # for m in MILESTONES: doc_ref.update({m: False, f"{m}_ts": ""})
+    st.warning("All signals cleared.")
+    st.rerun()
 
 st.divider()
 
-# --- STATUS PREVIEW ---
-st.subheader("Live Operations Monitor")
-data = doc_ref.get().to_dict() or {}
-
+# --- 3. LIVE BROADCAST PREVIEW ---
+st.subheader("Current Broadcast Status")
 if data.get("emergency_cancel"):
     st.error("🛑 EMERGENCY STOP ACTIVE")
 elif data.get("note_active") or data.get("director_signal"):
-    current_note = data.get('custom_note', 'Okay to start ontime')
-    st.success(f"🟢 SIGNAL ACTIVE: {current_note} (Sent: {data.get('note_timestamp')})")
+    msg = data.get('custom_note', 'Okay to start ontime')
+    st.success(f"🟢 GREEN LIGHT: {msg} (Sent: {data.get('note_timestamp')})")
 else:
-    st.info("⚪ No active signals for the Start Line.")
+    st.info("⚪ System Ready. Awaiting ground completion.")
