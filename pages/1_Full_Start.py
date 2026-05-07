@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- VISIBLE SQUARE THEME ---
+# --- THE 1PX THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -43,45 +43,44 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 110px; 
+        margin-left: 20px; /* Reduced margin since box is tiny */
         display: flex;
         align-items: center;
         height: 100%;
         line-height: 1.0 !important;
     }
 
-    /* 1. MAKE THE CHECKBOX VISIBLE */
+    /* 1. SHRINK THE CHECKBOX TO 1PX */
     [data-testid="stCheckbox"] div[role="checkbox"] {
-        background-color: #FFFFFF !important;
-        border: 2px solid #000000 !important; /* Visible Black Border */
-        border-radius: 4px !important;
-        opacity: 1 !important; /* No longer invisible */
-        width: 96px !important;  
-        height: 96px !important; 
+        background-color: #000000 !important;
+        border: none !important;
+        opacity: 1 !important; 
+        width: 1px !important;  
+        height: 1px !important; 
         cursor: pointer !important;
         position: relative;
     }
 
-    /* 2. CUSTOM RED CHECKMARK (Stays inside the visible box) */
+    /* 2. CUSTOM RED CHECKMARK (Shrunk/Hidden to match) */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
         visibility: visible !important;
-        left: 28px; 
-        top: 5px; 
-        width: 30px; 
-        height: 60px; 
+        left: 0px; 
+        top: 0px; 
+        width: 15px; 
+        height: 30px; 
         border: solid #FF0000;
-        border-width: 0 15px 15px 0; 
+        border-width: 0 5px 5px 0; 
         transform: rotate(45deg);
     }
 
-    /* Hide the tiny default Streamlit check icon */
+    /* Hide the default Streamlit check icon */
     [data-testid="stCheckbox"] svg {
         display: none !important;
     }
 
-    /* Centering the widget in the 100px row */
+    /* Centering the tiny widget in the 100px row */
     [data-testid="stCheckbox"] {
         margin: 0 !important;
         padding: 0 !important;
@@ -89,6 +88,7 @@ st.markdown("""
         display: flex;
         align-items: center;
         justify-content: center;
+        width: 40px !important; /* Keep a small hit zone width */
     }
 
     .status-header {
@@ -142,7 +142,7 @@ def render():
         col_check, col_text = st.columns([0.05, 9.95])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"visible_square_{m}")
+            val = st.checkbox("", value=checked, key=f"tiny_dot_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
