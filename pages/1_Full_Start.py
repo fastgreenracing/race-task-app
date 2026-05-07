@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- THE "ZERO-OPACITY" THEME ---
+# --- THE "FLUSH-LEFT" RED CHECK THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -38,41 +38,45 @@ st.markdown("""
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {
         border: 1px solid #000000 !important;
         border-radius: 2px;
-        padding: 5px 12px !important;
-        margin-bottom: 4px !important;
+        padding: 0px 10px !important;
+        margin-bottom: 5px !important;
         background: #FFFFFF;
         display: flex;
         align-items: center; 
-        min-height: 55px;
+        min-height: 65px; /* Fixed height for consistent alignment */
         overflow: visible !important;
     }
     
-    /* 2. MAKE THE NATIVE BOX INVISIBLE BUT CLICKABLE */
+    /* 2. MAKE THE NATIVE BOX INVISIBLE BUT LARGE ENOUGH TO CLICK */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important; 
-        width: 40px !important;
-        height: 40px !important;
+        width: 60px !important;
+        height: 60px !important;
         cursor: pointer !important;
     }
 
-    /* 3. CREATE THE CUSTOM RED CHECKMARK */
+    /* 3. BOLD RED CHECKMARK - Sized to fill the 'purple box' area */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
         visibility: visible !important;
         opacity: 1 !important;
-        left: 12px;
-        top: 4px;
-        width: 12px;
-        height: 22px;
-        border: solid #FF0000;
-        border-width: 0 4px 4px 0;
+        left: 10px;   /* Anchored left */
+        top: 2px;    /* Centered vertically in the row */
+        width: 22px; /* Wide footprint */
+        height: 42px; /* Tall footprint */
+        border: solid #FF4B4B; /* Streamlit Red / Race Red */
+        border-width: 0 8px 8px 0; /* Thick lines to fill the space */
         transform: rotate(45deg);
     }
 
-    /* 4. HIDE STREAMLIT'S NATIVE SVG */
+    /* 4. HIDE NATIVE OVERLAYS */
     [data-testid="stCheckbox"] svg {
         display: none !important;
+    }
+    [data-testid="stCheckbox"] div[data-testid="stWidgetLabel"] div {
+        border: none !important;
+        background: transparent !important;
     }
 
     .status-header {
@@ -120,7 +124,8 @@ def render():
 
     for m in MILESTONES:
         checked = data.get(m, False)
-        col1, col2 = st.columns([0.5, 9.5]) 
+        # Ratio ensures col1 is just for the checkmark, col2 is for text
+        col1, col2 = st.columns([0.1, 9.9]) 
         with col1:
             val = st.checkbox("", value=checked, key=f"m_{m}")
             if val != checked:
@@ -129,7 +134,8 @@ def render():
                     doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
         with col2:
-            st.markdown(f"<div style='margin-left:20px; padding-top:12px;'><b>{m}</b></div>", unsafe_allow_html=True)
+            # margin-left:60px provides the gap so the text and checkmark are aligned but distinct
+            st.markdown(f"<div style='margin-left:60px; padding-top:18px;'><b>{m}</b></div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     render()
