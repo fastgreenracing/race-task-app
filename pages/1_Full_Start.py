@@ -126,4 +126,14 @@ def render():
         checked = data.get(m, False)
         col1, col2 = st.columns([0.5, 9.5])
         with col1:
-            val = st.checkbox("", value=checked,
+            val = st.checkbox("", value=checked, key=f"m_{m}")
+            if val != checked:
+                doc_ref.set({m: val}, merge=True)
+                if not val: 
+                    doc_ref.update({"director_signal": False, "note_active": False})
+                st.rerun()
+        with col2:
+            st.markdown(f"<div style='padding-top:10px;'><b>{m}</b></div>", unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    render()
