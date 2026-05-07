@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- CLEAN WHITE THEME: TOTAL INTERNAL BOX REMOVAL ---
+# --- CLEAN WHITE THEME: REMOVING ALL INTERNAL WIDGET BOXES ---
 st.markdown("""
     <style>
     .stApp {
@@ -34,52 +34,48 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* Milestone Container Box */
+    /* 1. THE MAIN MILESTONE CONTAINER */
     [data-testid="stVerticalBlock"] > div:has([data-testid="stCheckbox"]) {
         border: 1px solid #000000 !important;
         border-radius: 2px;
-        padding: 8px 12px !important;
+        padding: 5px 12px !important;
         margin-bottom: 4px !important;
         background: #FFFFFF;
         display: flex;
         align-items: center;
     }
     
-    /* TARGETING THE INNER BOX DIRECTLY */
-    /* This removes the border and background of the actual square box */
-    [data-testid="stCheckbox"] div[role="checkbox"] {
+    /* 2. REMOVE THE HIGHLIGHTED PURPLE BOXES */
+    /* This targets the internal widget wrapper box seen in your screenshot */
+    [data-testid="stCheckbox"] {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: fit-content !important;
+    }
+
+    /* 3. STRIP THE CHECKBOX SQUARE BORDER */
+    [data-testid="stCheckbox"] [role="checkbox"] {
         border: none !important;
         background: transparent !important;
         background-color: transparent !important;
         box-shadow: none !important;
-        outline: none !important;
+        height: 40px !important; /* Matches height to container */
+        width: 40px !important;
     }
 
-    /* This removes the 'hover' and 'focus' states that re-draw the box */
-    [data-testid="stCheckbox"] div[role="checkbox"]:hover,
-    [data-testid="stCheckbox"] div[role="checkbox"]:focus,
-    [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"] {
-        border: none !important;
-        background: transparent !important;
-        background-color: transparent !important;
-        box-shadow: none !important;
-    }
-
-    /* This targets the internal div that Streamlit often uses for the widget's visual state */
-    [data-testid="stCheckbox"] div[data-testid="stWidgetLabel"] div {
-        border: none !important;
-        background: transparent !important;
-    }
-
-    /* Scale only the red check icon */
+    /* 4. SCALE THE RED CHECK ICON */
+    /* We scale the whole widget now that the box is gone */
     [data-testid="stCheckbox"] { 
         transform: scale(2.2); 
-        margin-left: 5px;
+        margin-left: 10px;
+        margin-right: 15px;
     }
-    
-    /* Ensure the check icon (SVG) is visible even when the background is gone */
+
+    /* Ensure check icon stays red and visible */
     [data-testid="stCheckbox"] svg {
-        fill: #FF0000 !important; /* Forces the checkmark to remain red/visible */
+        fill: #FF0000 !important;
     }
 
     .status-header {
@@ -124,7 +120,8 @@ def render():
 
     for m in MILESTONES:
         checked = data.get(m, False)
-        col1, col2 = st.columns([0.5, 9.5])
+        # Using a very narrow first column so the checkmark stays tight to the border
+        col1, col2 = st.columns([0.1, 9.9])
         with col1:
             val = st.checkbox("", value=checked, key=f"m_{m}")
             if val != checked:
@@ -133,7 +130,7 @@ def render():
                     doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
         with col2:
-            st.markdown(f"<div style='padding-top:10px;'><b>{m}</b></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='padding-top:12px; margin-left:25px;'><b>{m}</b></div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     render()
