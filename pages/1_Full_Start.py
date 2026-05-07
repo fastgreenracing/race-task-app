@@ -52,7 +52,7 @@ st.markdown("""
         line-height: 1.2 !important;
     }
 
-    /* Invisible clickable hit area */
+    /* Clickable hit area */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 100 !important;
         width: 50px !important;
