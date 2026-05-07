@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- THE "ZERO-GAP" JUMBO THEME ---
+# --- SQUARE JUMBO THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -27,64 +27,61 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* Milestone Row: Acts like a table row to force bottom alignment */
+    /* Milestone Row: Fixed height to define the square checkbox size */
     .milestone-row {
-        display: table;
-        width: 100%;
-        border-bottom: 4px solid #000000; /* Extra thick border */
+        display: flex;
+        align-items: center; 
+        height: 100px; /* Base height for the square */
+        border-bottom: 3px solid #000000;
         margin: 0 !important;
         padding: 0 !important;
         background-color: transparent;
+        position: relative;
     }
 
-    /* Milestone Text: Anchored to the very bottom */
     .milestone-text {
-        display: table-cell;
-        vertical-align: center;
         font-size: 24pt !important;
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        padding-bottom: 4px !important; /* Minimal buffer from line */
-        padding-top: 3px !important;   /* Large top padding for height */
+        margin-left: 110px; /* Shifted to clear the square box */
+        display: flex;
+        align-items: center;
+        height: 100%;
         line-height: 1.0 !important;
     }
 
-    /* Checkbox Container: Also anchored to bottom */
-    .check-container {
-        display: table-cell;
-        vertical-align: bottom;
-        width: 120px;
-        padding-bottom: 0px !important;
-    }
-
-    /* Invisible clickable area: Large hit zone */
+    /* 2. THE SQUARE HIT AREA (2px spacing from lines) */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         opacity: 0 !important;
-        width: 100px !important;
-        height: 100px !important;
+        width: 96px !important;  /* 100px row minus 4px (2px top/bottom) */
+        height: 96px !important; /* Forces Square Aspect Ratio */
         cursor: pointer !important;
     }
 
-    /* DOUBLE SCALE RED CHECKMARK (100% Increase) */
+    /* 3. THE VISUAL RED CHECK (Scaled to the 96px square) */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
         visibility: visible !important;
         opacity: 1 !important;
-        left: 10px; 
-        top: -65px; /* Adjusted to keep the massive check level with jumbo text */
-        width: 40px; 
-        height: 85px; 
+        left: 25px; 
+        top: 0px; 
+        width: 35px; 
+        height: 75px; 
         border: solid #FF0000;
-        border-width: 0 18px 18px 0; /* Massive thickness */
+        border-width: 0 18px 18px 0; /* Thick bold check */
         transform: rotate(45deg);
     }
 
-    /* Remove Streamlit default spacing */
+    /* Ensure widget takes up the full row height for centering */
     [data-testid="stCheckbox"] {
         margin: 0 !important;
         padding: 0 !important;
+        height: 100px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     [data-testid="stCheckbox"] svg {
@@ -138,29 +135,21 @@ def render():
     for m in MILESTONES:
         checked = data.get(m, False)
         
-        # New Table-Row approach to force bottom alignment
-        st.markdown(f'''
-            <div class="milestone-row">
-                <div class="check-container" id="check_{m}"></div>
-                <div class="milestone-text">{m}</div>
-            </div>
-        ''', unsafe_allow_html=True)
+        st.markdown('<div class="milestone-row">', unsafe_allow_html=True)
+        col_check, col_text = st.columns([0.05, 9.95])
         
-        # Inject the actual checkbox into the container
-        # Note: Streamlit widgets usually render in order, 
-        # so we keep the columns for functional logic but hide the gap
-        col1, col2 = st.columns([0.1, 9.9])
-        with col1:
-            # Shift the widget up into the table row space using a negative margin
-            st.markdown('<div style="margin-top:-60px;">', unsafe_allow_html=True)
-            val = st.checkbox("", value=checked, key=f"final_jumbo_{m}")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
+        with col_check:
+            val = st.checkbox("", value=checked, key=f"square_jumbo_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
                     doc_ref.update({"director_signal": False, "note_active": False})
                 st.rerun()
+        
+        with col_text:
+            st.markdown(f'<div class="milestone-text">{m}</div>', unsafe_allow_html=True)
+            
+        st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     render()
