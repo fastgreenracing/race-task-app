@@ -21,20 +21,20 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
     }
     
-    /* Global Text Style for the List */
     .milestone-label {
         font-size: 24pt !important;
         font-family: "Times New Roman", Times, serif !important;
         font-weight: bold !important;
         color: #000000 !important;
-        line-height: 1.2;
+        line-height: 1.5;
     }
 
-    /* Jumbo Red Checkmark Logic */
+    /* Jumbo Red Checkmark */
     [data-testid="stCheckbox"] div[role="checkbox"] {
         width: 50px !important;
         height: 50px !important;
         cursor: pointer !important;
+        margin-top: 10px;
     }
 
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
@@ -50,7 +50,6 @@ st.markdown("""
         transform: rotate(45deg);
     }
 
-    /* Hide the tiny default check */
     [data-testid="stCheckbox"] svg {
         display: none !important;
     }
@@ -62,6 +61,13 @@ st.markdown("""
         text-align: center;
         margin-bottom: 20px;
         color: white;
+    }
+
+    /* Simple divider style */
+    hr {
+        margin: 1em 0 !important;
+        border: 0;
+        border-top: 1px solid #CCCCCC;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -87,7 +93,6 @@ def render():
     note_active = data.get("note_active", False)
     emergency = data.get("emergency_cancel", False)
 
-    # Status Header
     if emergency:
         st.markdown("<div class='status-header' style='background:#FF0000;'><h1>🛑 EMERGENCY STOP</h1></div>", unsafe_allow_html=True)
     elif director_signal or note_active: 
@@ -100,15 +105,14 @@ def render():
 
     st.divider()
 
-    # Pure List Form
-    for m in MILESTONES:
+    # Pure List Form with Dividers
+    for i, m in enumerate(MILESTONES):
         checked = data.get(m, False)
         
-        # Using columns to put checkbox and text side-by-side in a simple list
         col_check, col_text = st.columns([0.1, 9.9])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"list_item_{m}")
+            val = st.checkbox("", value=checked, key=f"list_final_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
@@ -117,6 +121,10 @@ def render():
         
         with col_text:
             st.markdown(f'<div class="milestone-label">{m}</div>', unsafe_allow_html=True)
+        
+        # Add a line after every item except the last one
+        if i < len(MILESTONES) - 1:
+            st.markdown("---")
 
 if __name__ == "__main__":
     render()
