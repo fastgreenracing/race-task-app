@@ -20,12 +20,8 @@ st.markdown("""
     .stApp { background-color: #000000; color: #28a745; }
     h1, h2, h3, p, span, label { color: #28a745 !important; }
     .status-card {
-        border: 2px solid #28a745;
-        border-radius: 15px;
-        padding: 20px;
-        background-color: #0a0a0a;
-        margin-bottom: 20px;
-        text-align: center;
+        border: 2px solid #28a745; border-radius: 15px; padding: 20px;
+        background-color: #0a0a0a; margin-bottom: 20px; text-align: center;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -34,27 +30,22 @@ def get_categories():
     cat_ref = db.collection("settings").document("categories").get()
     return sorted(cat_ref.to_dict().get("data", []), key=lambda x: x.get('order', 0)) if cat_ref.exists else []
 
-def get_site_status(cat_name):
-    # HARD-CODED CHECK for the Full Start Line
-    if "Full" in cat_name and "Start" in cat_name:
-        # Use the new V2 ID to bypass old data
-        doc = db.collection("site_statuses").document("full_start_v2").get()
-        if doc.exists:
-            data = doc.to_dict()
-            m_list = [
-                "Staff on Site", "Volunteers on Site", "Announcers on Site", 
-                "Timers on Site", "Set up of Start Line is Finished", 
-                "Full Marathon Start is 100%-awaiting Go Ahead"
-            ]
-            count = sum(1 for m in m_list if data.get(m, False))
-            is_ready = (count == 6)
-            return {"completed": is_ready, "display": f"{count}/6 MILESTONES"}
-    
-    # Fallback for other locations
-    safe_id = cat_name.replace("/", "_").replace(" ", "_")
-    doc = db.collection("settings").document(f"status_{safe_id}").get()
-    res = doc.to_dict() if doc.exists else {"completed": False}
-    return {"completed": res.get("completed", False), "display": "NOT READY"}
+def get_full_start_status():
+    """HARD-CODED RECOUNT: Dashboard manually counts the 6 milestones itself."""
+    doc = db.collection("site_statuses").document("full_start_FINAL").get()
+    if doc.exists:
+        data = doc.to_dict()
+        m_list = [
+            "Staff on Site", "Volunteers on Site", "Announcers on Site", 
+            "Timers on Site", "Set up of Start Line is Finished", 
+            "Full Marathon Start is 100%-awaiting Go Ahead"
+        ]
+        # Physically count every checkbox that is True
+        count = sum(1 for m in m_list if data.get(m) == True)
+        # It MUST be exactly 6 to be GO
+        ready = (count == 6)
+        return {"ready": ready, "label": f"{count}/6 READY"}
+    return {"ready": False, "label": "0/6 READY"}
 
 st.title("🎛️ Ops Master Dashboard")
 
@@ -66,9 +57,20 @@ def render_dashboard():
     cols = st.columns(len(categories))
     for i, cat in enumerate(categories):
         name = cat['name']
-        status = get_site_status(name)
         
-        ready = status["completed"]
+        # If this is the Full Start, use the Hard-Count logic
+        if "Full" in name and "Start" in name:
+            status = get_full_start_status()
+            ready = status["ready"]
+            display_text = status["label"]
+        else:
+            # Fallback for other locations
+            safe_id = name.replace("/", "_").replace(" ", "_")
+            doc = db.collection("settings").document(f"status_{safe_id}").get()
+            res = doc.to_dict() if doc.exists else {"completed": False}
+            ready = res.get("completed", False)
+            display_text = "READY" if ready else "NOT READY"
+        
         color = "#28a745" if ready else "#ff4b4b"
         text = "GO" if ready else "NO GO"
         
@@ -78,7 +80,7 @@ def render_dashboard():
                     <p style="font-size: 12px; opacity: 0.7;">LOCATION</p>
                     <h3 style="margin-top: 0;">{name}</h3>
                     <h1 style="color: {color} !important; font-size: 54px; font-weight: 900;">{text}</h1>
-                    <p style="font-weight: bold;">{status['display']}</p>
+                    <p style="font-weight: bold; background: {color}; color: black !important; border-radius: 5px;">{display_text}</p>
                 </div>
             """, unsafe_allow_html=True)
 
