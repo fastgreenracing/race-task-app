@@ -12,7 +12,7 @@ else:
 
 st.set_page_config(page_title="Full Start Coordinator", layout="wide")
 
-# --- SQUARE JUMBO THEME ---
+# --- VISIBLE SQUARE THEME ---
 st.markdown("""
     <style>
     .stApp {
@@ -27,16 +27,15 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* Milestone Row: Fixed height to define the square checkbox size */
+    /* Milestone Row */
     .milestone-row {
         display: flex;
         align-items: center; 
-        height: 100px; /* Base height for the square */
+        height: 100px; 
         border-bottom: 3px solid #000000;
         margin: 0 !important;
         padding: 0 !important;
         background-color: transparent;
-        position: relative;
     }
 
     .milestone-text {
@@ -44,37 +43,45 @@ st.markdown("""
         font-family: "Times New Roman", Times, serif !important;
         color: #000000 !important;
         font-weight: bold !important;
-        margin-left: 110px; /* Shifted to clear the square box */
+        margin-left: 110px; 
         display: flex;
         align-items: center;
         height: 100%;
         line-height: 1.0 !important;
     }
 
-    /* 2. THE SQUARE HIT AREA (2px spacing from lines) */
+    /* 1. MAKE THE CHECKBOX VISIBLE */
     [data-testid="stCheckbox"] div[role="checkbox"] {
-        opacity: 0 !important;
-        width: 96px !important;  /* 100px row minus 4px (2px top/bottom) */
-        height: 96px !important; /* Forces Square Aspect Ratio */
+        background-color: #FFFFFF !important;
+        border: 2px solid #000000 !important; /* Visible Black Border */
+        border-radius: 4px !important;
+        opacity: 1 !important; /* No longer invisible */
+        width: 96px !important;  
+        height: 96px !important; 
         cursor: pointer !important;
+        position: relative;
     }
 
-    /* 3. THE VISUAL RED CHECK (Scaled to the 96px square) */
+    /* 2. CUSTOM RED CHECKMARK (Stays inside the visible box) */
     [data-testid="stCheckbox"] div[role="checkbox"][aria-checked="true"]::after {
         content: '' !important;
         position: absolute;
         visibility: visible !important;
-        opacity: 1 !important;
-        left: 25px; 
-        top: 0px; 
-        width: 35px; 
-        height: 75px; 
+        left: 28px; 
+        top: 5px; 
+        width: 30px; 
+        height: 60px; 
         border: solid #FF0000;
-        border-width: 0 18px 18px 0; /* Thick bold check */
+        border-width: 0 15px 15px 0; 
         transform: rotate(45deg);
     }
 
-    /* Ensure widget takes up the full row height for centering */
+    /* Hide the tiny default Streamlit check icon */
+    [data-testid="stCheckbox"] svg {
+        display: none !important;
+    }
+
+    /* Centering the widget in the 100px row */
     [data-testid="stCheckbox"] {
         margin: 0 !important;
         padding: 0 !important;
@@ -82,10 +89,6 @@ st.markdown("""
         display: flex;
         align-items: center;
         justify-content: center;
-    }
-
-    [data-testid="stCheckbox"] svg {
-        display: none !important;
     }
 
     .status-header {
@@ -139,7 +142,7 @@ def render():
         col_check, col_text = st.columns([0.05, 9.95])
         
         with col_check:
-            val = st.checkbox("", value=checked, key=f"square_jumbo_{m}")
+            val = st.checkbox("", value=checked, key=f"visible_square_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
                 if not val: 
