@@ -19,12 +19,15 @@ def render():
     count = sum(1 for m in MILESTONES if data.get(m) == True)
     director_signal = data.get("director_signal", False)
 
-    # VISUAL HEADER LOGIC
+    # VISUAL HEADER FOR SITE LEAD
     if director_signal:
-        st.markdown("<div style='background:#1b5e20; padding:30px; border-radius:15px; text-align:center; border: 5px solid #28a745;'><h1>🚀 START SIGNAL RECEIVED: GO GO GO!</h1></div>", unsafe_allow_html=True)
+        # Green Signal received from Director
+        st.markdown("<div style='background:#1b5e20; padding:30px; border-radius:15px; text-align:center; border: 5px solid #28a745;'><h1>🚀 Okay to start ontime</h1></div>", unsafe_allow_html=True)
     elif count == 6:
+        # Yellow - All boxes checked, waiting for you
         st.markdown("<div style='background:#5a4100; padding:30px; border-radius:15px; text-align:center; border: 2px solid #ffc107;'><h1>⏳ WAITING FOR DIRECTOR APPROVAL...</h1></div>", unsafe_allow_html=True)
     else:
+        # Red - Still working on milestones
         st.markdown(f"<div style='background:#4c0000; padding:20px; border-radius:15px; text-align:center;'><h1>NO GO ({count}/6)</h1></div>", unsafe_allow_html=True)
 
     st.divider()
@@ -35,7 +38,7 @@ def render():
             val = st.checkbox("", value=checked, key=f"m_{m}")
             if val != checked:
                 doc_ref.set({m: val}, merge=True)
-                # If they uncheck something, we should probably pull the director signal too
+                # Auto-reset approval if something is unchecked
                 if not val: doc_ref.update({"director_signal": False})
                 st.rerun()
         with col2: st.markdown(f"## {m}")
